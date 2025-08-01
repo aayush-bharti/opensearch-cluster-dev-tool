@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React from "react";
 import {
   EuiIcon,
@@ -7,6 +12,7 @@ import {
   EuiTitle,
   EuiFlexGroup,
   EuiPanel,
+  EuiFlexItem,
 } from "@opensearch-project/oui";
 
 const BenchmarkConfiguration = ({ config, onChange, selectedTasks }) => {
@@ -39,13 +45,13 @@ const BenchmarkConfiguration = ({ config, onChange, selectedTasks }) => {
           >
             <EuiFieldText
               fullWidth
-              value={config.clusterEndpoint}
-              onChange={onChange("clusterEndpoint")}
+              value={config.cluster_endpoint}
+              onChange={onChange("cluster_endpoint")}
               placeholder={"Paste cluster endpoint here..."}
               isInvalid={
                 selectedTasks.benchmark &&
                 !selectedTasks.deploy &&
-                !config.clusterEndpoint
+                !config.cluster_endpoint
               }
               style={{ width: "100%", minWidth: "100%" }}
             />
@@ -53,33 +59,44 @@ const BenchmarkConfiguration = ({ config, onChange, selectedTasks }) => {
         </div>
       )}
 
-      {/* Workload Type */}
+      {/* Workload Type and Pipeline */}
       {/* uses workloads from: https://github.com/opensearch-project/opensearch-benchmark-workloads */}
-      <div style={{ marginBottom: "1rem", width: "100%" }}>
-        <EuiFormRow label="Workload Type" fullWidth style={{ width: "100%" }}>
-          <EuiSelect
-            fullWidth
-            value={config.workloadType}
-            onChange={onChange("workloadType")}
-            options={[
-              { value: "big5", text: "big5" },
-              { value: "eventdata", text: "eventdata" },
-              { value: "geonames", text: "geonames" },
-              { value: "geopoint", text: "geopoint" },
-              { value: "http_logs", text: "http_logs" },
-              { value: "nested", text: "nested" },
-              { value: "noaa", text: "noaa" },
-              { value: "nyc_taxis", text: "nyc_taxis" },
-              { value: "percolator", text: "percolator" },
-              { value: "pmc", text: "pmc" },
-              { value: "so", text: "so" },
-              { value: "vectorsearch", text: "vectorsearch" },
-            ]}
-            placeholder={"Choose workload type here..."}
-            style={{ width: "100%", minWidth: "100%" }}
-          />
-        </EuiFormRow>
-      </div>
+      <EuiFlexGroup gutterSize="m">
+        <EuiFlexItem>
+          <EuiFormRow label="Workload Type" fullWidth>
+            <EuiSelect
+              fullWidth
+              value={config.workload_type}
+              onChange={onChange("workload_type")}
+              options={[
+                { value: "big5", text: "big5" },
+                { value: "eventdata", text: "eventdata" },
+                { value: "geonames", text: "geonames" },
+                { value: "geopoint", text: "geopoint" },
+                { value: "http_logs", text: "http_logs" },
+                { value: "nested", text: "nested" },
+                { value: "noaa", text: "noaa" },
+                { value: "nyc_taxis", text: "nyc_taxis" },
+                { value: "percolator", text: "percolator" },
+                { value: "pmc", text: "pmc" },
+                { value: "so", text: "so" },
+                { value: "vectorsearch", text: "vectorsearch" },
+              ]}
+              placeholder={"Choose workload type here..."}
+            />
+          </EuiFormRow>
+        </EuiFlexItem>
+        <EuiFlexItem>
+          <EuiFormRow label="Pipeline" fullWidth>
+            <EuiFieldText
+              fullWidth
+              value={config.pipeline}
+              onChange={onChange("pipeline")}
+              placeholder={"Enter pipeline type (e.g., benchmark-only)"}
+            />
+          </EuiFormRow>
+        </EuiFlexItem>
+      </EuiFlexGroup>
     </EuiPanel>
   );
 };

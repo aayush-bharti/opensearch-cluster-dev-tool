@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { useState, useEffect, useCallback, useRef } from "react";
 
 // API Endpoint Constants
@@ -10,7 +15,7 @@ const API_ENDPOINTS = {
   WORKFLOW: `${API_BASE_URL}/api/cluster/workflow`,
 };
 
-// useJobStatusPolling hook 
+// useJobStatusPolling hook
 export const useJobStatusPolling = (jobId, jobDisplayId) => {
   const [jobStatus, setJobStatus] = useState(null);
   const [logs, setLogs] = useState([]);
