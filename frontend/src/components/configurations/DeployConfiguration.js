@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React from "react";
 import {
   EuiIcon,
@@ -10,6 +15,7 @@ import {
   EuiSpacer,
   EuiTitle,
 } from "@opensearch-project/oui";
+import CustomParameters from "./CustomParameters";
 
 // deploy config component
 const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
@@ -25,15 +31,10 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
         }}
       >
         <EuiIcon type="redeploy" color="primary" />
-        <EuiTitle
-          size="l"
-          style={{ color: "#2c3e50", fontSize: "1.75rem", fontWeight: "bold" }}
-        >
+        <EuiTitle size="l" style={{ fontSize: "1.75rem", fontWeight: "bold" }}>
           <h3>Deploy Configuration</h3>
         </EuiTitle>
       </EuiFlexGroup>
-
-      {/* distribution url input */}
       <EuiFlexGroup direction="column" gutterSize="xl">
         {!selectedTasks.build && (
           <EuiFlexItem grow={false}>
@@ -43,21 +44,21 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
             >
               <EuiFieldText
                 fullWidth
-                value={config.distributionUrl}
-                onChange={onChange("distributionUrl")}
+                value={config.distribution_url}
+                onChange={onChange("distribution_url")}
                 placeholder={"Paste distribution URL here..."}
                 isInvalid={
                   selectedTasks.deploy &&
                   !selectedTasks.build &&
-                  !config.distributionUrl
+                  !config.distribution_url
                 }
               />
             </EuiFormRow>
           </EuiFlexItem>
         )}
 
-        {/* deployment suffix input */}
         <EuiSpacer size="m" />
+
         <EuiFlexGroup gutterSize="m" style={{ marginLeft: "15px" }}>
           <EuiFlexItem>
             <EuiFormRow
@@ -73,8 +74,6 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
               />
             </EuiFormRow>
           </EuiFlexItem>
-
-          {/* data instance type input */}
           <EuiFlexItem>
             <EuiFormRow
               label="Data Instance Type"
@@ -82,15 +81,15 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
             >
               <EuiFieldText
                 fullWidth
-                value={config.dataInstanceType}
-                onChange={onChange("dataInstanceType")}
+                value={config.data_instance_type}
+                onChange={onChange("data_instance_type")}
               />
             </EuiFormRow>
           </EuiFlexItem>
         </EuiFlexGroup>
 
-        {/* distribution version input */}
         <EuiSpacer size="l" />
+
         <EuiFlexGroup gutterSize="m" style={{ marginLeft: "15px" }}>
           <EuiFlexItem>
             <EuiFormRow
@@ -99,21 +98,19 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
             >
               <EuiFieldText
                 fullWidth
-                value={config.distVersion}
-                onChange={onChange("distVersion")}
+                value={config.dist_version}
+                onChange={onChange("dist_version")}
                 placeholder={"Paste distribution version here..."}
               />
             </EuiFormRow>
           </EuiFlexItem>
-
-          {/* data node count input */}
           <EuiFlexItem>
             <EuiFormRow label="Data Node Count" style={{ maxWidth: "490px" }}>
               <EuiFieldText
                 fullWidth
                 type="number"
-                value={config.dataNodeCount}
-                onChange={onChange("dataNodeCount")}
+                value={config.data_node_count}
+                onChange={onChange("data_node_count")}
                 min={1}
                 max={20}
               />
@@ -121,33 +118,30 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
           </EuiFlexItem>
         </EuiFlexGroup>
 
-        {/* cpu architecture input */}
         <EuiSpacer size="m" />
-        <EuiFlexItem grow={false}>
-          <EuiFormRow label="CPU Architecture" fullWidth>
-            <EuiSelect
-              fullWidth
-              value={config.cpuArch}
-              onChange={onChange("cpuArch")}
-              options={[
-                { value: "arm64", text: "ARM64" },
-                { value: "x64", text: "x64" },
-                { value: "x86_64", text: "x86_64" },
-              ]}
-            />
-          </EuiFormRow>
-        </EuiFlexItem>
 
-        {/* security disabled input */}
-        <EuiSpacer size="m" />
         <EuiFlexGroup gutterSize="m" style={{ marginLeft: "15px" }}>
+          <EuiFlexItem>
+            <EuiFormRow label="CPU Architecture" style={{ maxWidth: "490px" }}>
+              <EuiSelect
+                fullWidth
+                value={config.cpu_arch}
+                onChange={onChange("cpu_arch")}
+                options={[
+                  { value: "arm64", text: "ARM64" },
+                  { value: "x64", text: "x64" },
+                  { value: "x86_64", text: "x86_64" },
+                ]}
+              />
+            </EuiFormRow>
+          </EuiFlexItem>
           <EuiFlexItem>
             <EuiFormRow label="Security Disabled" style={{ maxWidth: "490px" }}>
               <EuiSelect
                 fullWidth
-                value={config.securityDisabled ? "true" : "false"}
+                value={config.security_disabled ? "true" : "false"}
                 onChange={(e) =>
-                  onChange("securityDisabled")({
+                  onChange("security_disabled")({
                     target: { value: e.target.value === "true" },
                   })
                 }
@@ -158,8 +152,34 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
               />
             </EuiFormRow>
           </EuiFlexItem>
+        </EuiFlexGroup>
 
-          {/* single node cluster input */}
+        <EuiSpacer size="m" />
+        {/* Show Admin Password when Security is Enabled */}
+        {!config.security_disabled && (
+          <EuiFlexGroup gutterSize="m" style={{ marginLeft: "15px" }}>
+            <EuiFlexItem>
+              <EuiFormRow
+                label={<span className="required-field">Admin Password</span>}
+                helpText="Required when security is enabled and version >= 2.12.0"
+                style={{ maxWidth: "490px" }}
+              >
+                <EuiFieldText
+                  fullWidth
+                  type="password"
+                  value={config.admin_password || ""}
+                  onChange={onChange("admin_password")}
+                  placeholder="Enter admin password..."
+                  isInvalid={!config.admin_password}
+                />
+              </EuiFormRow>
+            </EuiFlexItem>
+          </EuiFlexGroup>
+        )}
+
+        <EuiSpacer size="m" />
+
+        <EuiFlexGroup gutterSize="m" style={{ marginLeft: "15px" }}>
           <EuiFlexItem>
             <EuiFormRow
               label="Single Node Cluster"
@@ -167,46 +187,44 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
             >
               <EuiSelect
                 fullWidth
-                value={config.singleNodeCluster ? "true" : "false"}
+                value={config.single_node_cluster ? "true" : "false"}
                 onChange={(e) =>
-                  onChange("singleNodeCluster")({
+                  onChange("single_node_cluster")({
                     target: { value: e.target.value === "true" },
                   })
                 }
                 options={[
                   { value: "false", text: "False" },
                   { value: "true", text: "True" },
+                ]}
+              />
+            </EuiFormRow>
+          </EuiFlexItem>
+          <EuiFlexItem>
+            <EuiFormRow label="Use 50% Heap" style={{ maxWidth: "490px" }}>
+              <EuiSelect
+                fullWidth
+                value={config.use_50_percent_heap ? "true" : "false"}
+                onChange={(e) =>
+                  onChange("use_50_percent_heap")({
+                    target: { value: e.target.value === "true" },
+                  })
+                }
+                options={[
+                  { value: "true", text: "True" },
+                  { value: "false", text: "False" },
                 ]}
               />
             </EuiFormRow>
           </EuiFlexItem>
         </EuiFlexGroup>
 
-        {/* use 50% heap input */}
-        <EuiSpacer size="l" />
+        <EuiSpacer size="m" />
+
         <EuiFlexGroup
           gutterSize="m"
           style={{ marginLeft: "15px", marginBottom: "10px" }}
         >
-          <EuiFlexItem>
-            <EuiFormRow label="Use 50% Heap" style={{ maxWidth: "490px" }}>
-              <EuiSelect
-                fullWidth
-                value={config.use50PercentHeap ? "true" : "false"}
-                onChange={(e) =>
-                  onChange("use50PercentHeap")({
-                    target: { value: e.target.value === "true" },
-                  })
-                }
-                options={[
-                  { value: "true", text: "True" },
-                  { value: "false", text: "False" },
-                ]}
-              />
-            </EuiFormRow>
-          </EuiFlexItem>
-
-          {/* minimum distribution input */}
           <EuiFlexItem>
             <EuiFormRow
               label="Minimum Distribution"
@@ -214,8 +232,25 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
             >
               <EuiSelect
                 fullWidth
-                value={config.minDistribution}
-                onChange={onChange("minDistribution")}
+                value={config.min_distribution}
+                onChange={onChange("min_distribution")}
+                options={[
+                  { value: "false", text: "False" },
+                  { value: "true", text: "True" },
+                ]}
+              />
+            </EuiFormRow>
+          </EuiFlexItem>
+          <EuiFlexItem>
+            <EuiFormRow label="Is Internal" style={{ maxWidth: "490px" }}>
+              <EuiSelect
+                fullWidth
+                value={config.is_internal ? "true" : "false"}
+                onChange={(e) =>
+                  onChange("is_internal")({
+                    target: { value: e.target.value === "true" },
+                  })
+                }
                 options={[
                   { value: "false", text: "False" },
                   { value: "true", text: "True" },
@@ -224,7 +259,55 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
             </EuiFormRow>
           </EuiFlexItem>
         </EuiFlexGroup>
+
+        <EuiFlexGroup gutterSize="m" style={{ marginLeft: "15px" }}>
+          <EuiFlexItem>
+            <EuiFormRow
+              label="Server Access Type"
+              helpText="Choose how to restrict server access"
+              style={{ maxWidth: "490px" }}
+            >
+              <EuiSelect
+                fullWidth
+                value={config.server_access_type || ""}
+                onChange={onChange("server_access_type")}
+                options={[
+                  { value: "", text: "Use Default" },
+                  { value: "prefixList", text: "Prefix List" },
+                  { value: "ipv4", text: "IPv4 CIDR" },
+                  { value: "ipv6", text: "IPv6 CIDR" },
+                  { value: "securityGroupId", text: "Security Group ID" },
+                ]}
+              />
+            </EuiFormRow>
+          </EuiFlexItem>
+          <EuiFlexItem>
+            <EuiFormRow
+              label="Restrict Server Access To"
+              helpText="Value for server access type (e.g., pl-12345, 10.0.0.0/16)"
+              style={{ maxWidth: "490px" }}
+            >
+              <EuiFieldText
+                fullWidth
+                value={config.restrict_server_access_to || ""}
+                onChange={onChange("restrict_server_access_to")}
+                placeholder="Leave blank for default"
+              />
+            </EuiFormRow>
+          </EuiFlexItem>
+        </EuiFlexGroup>
+
+        <EuiSpacer size="m" />
       </EuiFlexGroup>
+
+      <CustomParameters
+        taskType="Deploy"
+        customParams={config.custom_deploy_params || []}
+        onChange={(params) =>
+          onChange("custom_deploy_params")({ target: { value: params } })
+        }
+        placeholder="Enter deploy parameter (e.g., --profile production, --region us-west-2)"
+      />
     </EuiPanel>
   );
 };

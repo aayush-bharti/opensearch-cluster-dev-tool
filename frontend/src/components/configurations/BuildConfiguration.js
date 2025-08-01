@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React from "react";
 import {
   EuiIcon,
@@ -7,6 +12,7 @@ import {
   EuiFlexGroup,
   EuiPanel,
 } from "@opensearch-project/oui";
+import CustomParameters from "./CustomParameters";
 
 // build config component
 const BuildConfiguration = ({ config, onChange, selectedTasks }) => {
@@ -37,13 +43,22 @@ const BuildConfiguration = ({ config, onChange, selectedTasks }) => {
         <EuiTextArea
           fullWidth
           rows={12}
-          value={config.manifest}
-          onChange={onChange("manifest")}
-          placeholder={"Paste your manifest YAML here..."}
-          isInvalid={selectedTasks.build && !config.manifest.trim()}
+          value={config.manifest_yml}
+          onChange={onChange("manifest_yml")}
+          placeholder="Enter manifest YAML content..."
+          isInvalid={selectedTasks.build && !config.manifest_yml.trim()}
           className="manifest-textarea"
         />
       </EuiFormRow>
+
+      <CustomParameters
+        taskType="Build"
+        customParams={config.custom_build_params || []}
+        onChange={(params) =>
+          onChange("custom_build_params")({ target: { value: params } })
+        }
+        placeholder="Enter build parameter (e.g., --verbose, --parallel 4)"
+      />
     </EuiPanel>
   );
 };

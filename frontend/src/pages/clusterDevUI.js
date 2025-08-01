@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState, useEffect, useCallback } from "react";
 import { EuiIcon } from "@opensearch-project/oui";
 import "./clusterDevUI.css";
@@ -23,25 +28,35 @@ export default function ClusterDevUI() {
   });
   const [config, setConfig] = useState({
     // build config
-    manifest: "",
+    manifest_yml: "",
+    custom_build_params: [],
 
     // deploy config
     suffix: "",
-    distributionUrl: "",
-    minDistribution: "false",
-    securityDisabled: true,
-    cpuArch: "arm64",
-    singleNodeCluster: false,
-    dataInstanceType: "r6g.large",
-    dataNodeCount: 3,
-    distVersion: "3.0.0",
-    use50PercentHeap: true,
-    isInternal: false,
+    distribution_url: "",
+    security_disabled: true,
+    cpu_arch: "arm64",
+    single_node_cluster: false,
+    data_instance_type: "r6g.large",
+    data_node_count: 3,
+    dist_version: "3.0.0",
+    min_distribution: false,
+    server_access_type: "",
+    restrict_server_access_to: "",
+    use_50_percent_heap: true,
+    is_internal: false,
+    custom_deploy_params: [],
+
+    admin_password: "",
 
     // benchmark config
-    clusterEndpoint: "",
-    workloadType: "percolator",
+    cluster_endpoint: "",
+    workload_type: "percolator",
     pipeline: "benchmark-only",
+    custom_benchmark_params: [],
+
+    // S3 Configuration
+    s3_bucket: "",
   });
   const [jobs, setJobs] = useState([]);
   const [isButtonPressed, setIsButtonPressed] = useState(false);
@@ -171,35 +186,47 @@ export default function ClusterDevUI() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             // Build config
-            ...(selectedTasks.build && { manifest_yml: config.manifest }),
+            ...(selectedTasks.build && {
+              manifest_yml: config.manifest_yml,
+              custom_build_params: config.custom_build_params,
+            }),
 
             // Deploy config
             ...(selectedTasks.deploy && {
               suffix: config.suffix,
-              ...(config.distributionUrl && {
-                distribution_url: config.distributionUrl,
+              ...(config.distribution_url && {
+                distribution_url: config.distribution_url,
               }),
-              security_disabled: config.securityDisabled,
-              cpu_arch: config.cpuArch,
-              data_instance_type: config.dataInstanceType,
-              data_node_count: config.dataNodeCount,
-              dist_version: config.distVersion,
-              min_distribution: config.minDistribution,
-              single_node_cluster: config.singleNodeCluster,
-              server_access_type: config.serverAccessType,
-              restrict_server_access_to: config.restrictServerAccessTo,
-              use_50_percent_heap: config.use50PercentHeap !== false,
-              is_internal: config.isInternal,
+              security_disabled: config.security_disabled,
+              cpu_arch: config.cpu_arch,
+              data_instance_type: config.data_instance_type,
+              data_node_count: config.data_node_count,
+              dist_version: config.dist_version,
+              min_distribution: config.min_distribution,
+              single_node_cluster: config.single_node_cluster,
+              server_access_type: config.server_access_type,
+              restrict_server_access_to: config.restrict_server_access_to,
+              use_50_percent_heap: config.use_50_percent_heap,
+              is_internal: config.is_internal,
+              custom_deploy_params: config.custom_deploy_params,
+
+              ...(config.admin_password && {
+                admin_password: config.admin_password,
+              }),
             }),
 
             // Benchmark config
             ...(selectedTasks.benchmark && {
-              ...(config.clusterEndpoint && {
-                cluster_endpoint: config.clusterEndpoint,
+              ...(config.cluster_endpoint && {
+                cluster_endpoint: config.cluster_endpoint,
               }),
-              workload_type: config.workloadType,
-              pipeline: "benchmark-only",
+              workload_type: config.workload_type,
+              pipeline: config.pipeline,
+              custom_benchmark_params: config.custom_benchmark_params,
             }),
+
+            // S3 Configuration (always include)
+            s3_bucket: config.s3_bucket || "",
           }),
         }
       );
@@ -211,12 +238,13 @@ export default function ClusterDevUI() {
 
       const workflowData = await workflowResponse.json();
 
+      // Create new job using backend UUID and display_id
       const newJob = {
         id: workflowData.job_id,
         jobId: workflowData.job_id,
         displayId: workflowData.display_id,
         tasks: { ...selectedTasks },
-        config: { ...config },
+        config: config,
         timestamp: new Date().toLocaleString(),
       };
 
@@ -251,7 +279,7 @@ export default function ClusterDevUI() {
     }
     // if the workflow is valid, check for required fields
     else {
-      if (selectedTasks.build && !config.manifest.trim()) {
+      if (selectedTasks.build && !config.manifest_yml.trim()) {
         errors.push("Manifest YAML is required for build");
       }
       if (selectedTasks.deploy && !config.suffix) {
@@ -260,19 +288,22 @@ export default function ClusterDevUI() {
       if (
         selectedTasks.deploy &&
         !selectedTasks.build &&
-        !config.distributionUrl
+        !config.distribution_url
       ) {
-        errors.push("Distribution URL required");
+        errors.push("Distribution URL required when not building");
       }
       if (
         selectedTasks.benchmark &&
         !selectedTasks.deploy &&
-        !config.clusterEndpoint
+        !config.cluster_endpoint
       ) {
-        errors.push("Cluster endpoint required");
+        errors.push("Cluster endpoint required when not deploying");
+      }
+      if (!config.s3_bucket.trim()) {
+        errors.push("S3 bucket name is required");
       }
     }
-
+    
     return errors;
   };
 

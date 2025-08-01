@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@opensearch-project/oui/dist/eui_theme_light.css";
