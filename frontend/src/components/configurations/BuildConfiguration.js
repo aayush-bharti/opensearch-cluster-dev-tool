@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React from "react";
 import {
   EuiIcon,
@@ -37,10 +42,10 @@ const BuildConfiguration = ({ config, onChange, selectedTasks }) => {
         <EuiTextArea
           fullWidth
           rows={12}
-          value={config.manifest}
-          onChange={onChange("manifest")}
+          value={config.manifest_yml}
+          onChange={onChange("manifest_yml")}
           placeholder={"Paste your manifest YAML here..."}
-          isInvalid={selectedTasks.build && !config.manifest.trim()}
+          isInvalid={selectedTasks.build && !config.manifest_yml.trim()}
           className="manifest-textarea"
         />
       </EuiFormRow>
