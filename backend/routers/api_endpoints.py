@@ -1,3 +1,6 @@
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
@@ -5,11 +8,9 @@ from scripts.build import run_build_process
 from scripts.deploy import run_deploy_process
 from scripts.benchmark import run_benchmark_process
 from job_tracker import job_tracker, JobStatus, TaskStatus
-from constants import Status, TaskTypes, ResultFields, ConfigFields, Defaults, ErrorMessages
+from constants import Status, TaskTypes, ResultFields, ConfigFields, ErrorMessages
 from datetime import datetime
-import asyncio
 import logging
-import os
 
 # Create new router for auto-credential endpoints
 router = APIRouter()
@@ -24,25 +25,55 @@ class WorkflowConfig(BaseModel):
     
     # Deploy configuration
     distribution_url: Optional[str] = None
-    security_disabled: bool = Defaults.SECURITY_DISABLED
-    cpu_arch: str = Defaults.CPU_ARCH
-    single_node_cluster: bool = Defaults.SINGLE_NODE_CLUSTER
-    data_instance_type: str = Defaults.DATA_INSTANCE_TYPE
-    data_node_count: int = Defaults.DATA_NODE_COUNT
-    dist_version: str = Defaults.DIST_VERSION
-    min_distribution: bool = Defaults.MIN_DISTRIBUTION
-    server_access_type: str = Defaults.SERVER_ACCESS_TYPE
-    restrict_server_access_to: str = Defaults.RESTRICT_SERVER_ACCESS_TO
-    use_50_percent_heap: bool = Defaults.USE_50_PERCENT_HEAP
-    is_internal: bool = Defaults.IS_INTERNAL
+    security_disabled: bool = None
+    cpu_arch: str = None
+    single_node_cluster: bool = None
+    data_instance_type: Optional[str] = None
+    data_node_count: Optional[int] = None
+    dist_version: str = None
+    min_distribution: bool = None
+    server_access_type: str = None
+    restrict_server_access_to: str = None
+    use_50_percent_heap: Optional[bool] = None
+    is_internal: Optional[bool] = None
+    
+    # Advanced deploy configuration (optional)
+    additional_config: Optional[str] = None
+    additional_osd_config: Optional[str] = None
+    admin_password: Optional[str] = None
+    certificate_arn: Optional[str] = None
+    cidr: Optional[str] = None
+    client_node_count: Optional[int] = None
+    context_key: Optional[str] = None
+    custom_config_files: Optional[str] = None
+    custom_role_arn: Optional[str] = None
+    data_node_storage: Optional[int] = None
+    enable_monitoring: Optional[bool] = None
+    enable_remote_store: Optional[bool] = None
+    ingest_node_count: Optional[int] = None
+    jvm_sys_props: Optional[str] = None
+    load_balancer_type: Optional[str] = None
+    manager_node_count: Optional[int] = None
+    map_opensearch_dashboards_port_to: Optional[int] = None
+    map_opensearch_port_to: Optional[int] = None
+    ml_instance_type: Optional[str] = None
+    ml_node_count: Optional[int] = None
+    ml_node_storage: Optional[int] = None
+    network_stack_suffix: Optional[str] = None
+    security_group_id: Optional[str] = None
+    storage_volume_type: Optional[str] = None
+    use_instance_based_storage: Optional[bool] = None
+    vpc_id: Optional[str] = None
     
     # Benchmark configuration
     cluster_endpoint: Optional[str] = None
     workload_type: Optional[str] = None
-    pipeline: str = Defaults.PIPELINE
+    pipeline: Optional[str] = None
+    
+    # S3 Configuration
+    s3_bucket: str = None
 
 # Task execution functions
-# handles the build task process
 def execute_build_task(job_id: str, config: dict, workflow_timestamp: str) -> dict:
     """Execute build task and return result."""
     auto_logger.info(f"🔨 Starting build operation for job {job_id}")
@@ -50,13 +81,17 @@ def execute_build_task(job_id: str, config: dict, workflow_timestamp: str) -> di
     job_tracker.update_progress(job_id, "Building OpenSearch...")
     
     try:
-        # run the build process
+        # Prepare build configuration with S3 bucket
+        build_config = {
+            ConfigFields.MANIFEST_YML: config[ConfigFields.MANIFEST_YML],
+            ConfigFields.S3_BUCKET: config.get(ConfigFields.S3_BUCKET)
+        }
+        
         build_result = run_build_process(
-            config[ConfigFields.MANIFEST_YML],
+            build_config,
             workflow_timestamp
         )
         
-        # check if the build was successful
         if build_result.get(ResultFields.STATUS) == Status.SUCCESS:
             auto_logger.info(f"✅ Build completed successfully for job {job_id}")
             job_tracker.update_task_status(job_id, TaskTypes.BUILD, TaskStatus.COMPLETED, build_result)
@@ -69,7 +104,7 @@ def execute_build_task(job_id: str, config: dict, workflow_timestamp: str) -> di
         job_tracker.update_task_status(job_id, TaskTypes.BUILD, TaskStatus.FAILED, error=str(e))
         raise
 
-# handles the deploy task process
+# execute the deploy task
 def execute_deploy_task(job_id: str, config: dict, workflow_timestamp: str) -> dict:
     """Execute deploy task and return result."""
     auto_logger.info(f"🚀 Starting deploy operation for job {job_id}")
@@ -94,13 +129,49 @@ def execute_deploy_task(job_id: str, config: dict, workflow_timestamp: str) -> d
             ConfigFields.IS_INTERNAL: config[ConfigFields.IS_INTERNAL]
         }
         
-        # run the deploy process
+        # Add advanced configuration fields if provided
+        advanced_fields = [
+            ConfigFields.ADDITIONAL_CONFIG,
+            ConfigFields.ADDITIONAL_OSD_CONFIG,
+            ConfigFields.ADMIN_PASSWORD,
+            ConfigFields.CERTIFICATE_ARN,
+            ConfigFields.CIDR,
+            ConfigFields.CLIENT_NODE_COUNT,
+            ConfigFields.CONTEXT_KEY,
+            ConfigFields.CUSTOM_CONFIG_FILES,
+            ConfigFields.CUSTOM_ROLE_ARN,
+            ConfigFields.DATA_NODE_STORAGE,
+            ConfigFields.ENABLE_MONITORING,
+            ConfigFields.ENABLE_REMOTE_STORE,
+            ConfigFields.INGEST_NODE_COUNT,
+            ConfigFields.JVM_SYS_PROPS,
+            ConfigFields.LOAD_BALANCER_TYPE,
+            ConfigFields.MANAGER_NODE_COUNT,
+            ConfigFields.MAP_OPENSEARCH_DASHBOARDS_PORT_TO,
+            ConfigFields.MAP_OPENSEARCH_PORT_TO,
+            ConfigFields.ML_INSTANCE_TYPE,
+            ConfigFields.ML_NODE_COUNT,
+            ConfigFields.ML_NODE_STORAGE,
+            ConfigFields.NETWORK_STACK_SUFFIX,
+            ConfigFields.SECURITY_GROUP_ID,
+            ConfigFields.STORAGE_VOLUME_TYPE,
+            ConfigFields.USE_INSTANCE_BASED_STORAGE,
+            ConfigFields.VPC_ID
+        ]
+
+         # Add S3 bucket to deploy config
+        deploy_config[ConfigFields.S3_BUCKET] = config.get(ConfigFields.S3_BUCKET)
+        auto_logger.info(f"🔍 S3 bucket from config: {config.get(ConfigFields.S3_BUCKET)}")
+        
+        for field in advanced_fields:
+            if field in config and config[field] is not None:
+                deploy_config[field] = config[field]
+        
         deploy_result = run_deploy_process(
             deploy_config,
             workflow_timestamp
         )
         
-        # check if the deploy was successful
         if deploy_result.get(ResultFields.STATUS) == Status.SUCCESS:
             auto_logger.info(f"✅ Deploy completed successfully for job {job_id}")
             job_tracker.update_task_status(job_id, TaskTypes.DEPLOY, TaskStatus.COMPLETED, deploy_result)
@@ -113,7 +184,7 @@ def execute_deploy_task(job_id: str, config: dict, workflow_timestamp: str) -> d
         job_tracker.update_task_status(job_id, TaskTypes.DEPLOY, TaskStatus.FAILED, error=str(e))
         raise
 
-# handles the benchmark task process
+# execute the benchmark task
 def execute_benchmark_task(job_id: str, config: dict, workflow_timestamp: str) -> dict:
     """Execute benchmark task and return result."""
     auto_logger.info(f"📊 Starting benchmark operation for job {job_id}")
@@ -124,16 +195,15 @@ def execute_benchmark_task(job_id: str, config: dict, workflow_timestamp: str) -
         benchmark_config = {
             ConfigFields.CLUSTER_ENDPOINT: config[ConfigFields.CLUSTER_ENDPOINT],
             ConfigFields.WORKLOAD_TYPE: config[ConfigFields.WORKLOAD_TYPE],
-            ConfigFields.PIPELINE: config[ConfigFields.PIPELINE]
+            ConfigFields.PIPELINE: config[ConfigFields.PIPELINE],
+            ConfigFields.S3_BUCKET: config.get(ConfigFields.S3_BUCKET)
         }
         
-        # run the benchmark process
         benchmark_result = run_benchmark_process(
             benchmark_config,
             workflow_timestamp
         )
         
-        # check if the benchmark was successful
         if benchmark_result.get(ResultFields.STATUS) == Status.SUCCESS:
             auto_logger.info(f"✅ Benchmark completed successfully for job {job_id}")
             job_tracker.update_task_status(job_id, TaskTypes.BENCHMARK, TaskStatus.COMPLETED, benchmark_result)
@@ -274,10 +344,41 @@ async def execute_workflow(
         ConfigFields.USE_50_PERCENT_HEAP: config.use_50_percent_heap,
         ConfigFields.IS_INTERNAL: config.is_internal,
         
+        # Advanced deploy config
+        ConfigFields.ADDITIONAL_CONFIG: config.additional_config,
+        ConfigFields.ADDITIONAL_OSD_CONFIG: config.additional_osd_config,
+        ConfigFields.ADMIN_PASSWORD: config.admin_password,
+        ConfigFields.CERTIFICATE_ARN: config.certificate_arn,
+        ConfigFields.CIDR: config.cidr,
+        ConfigFields.CLIENT_NODE_COUNT: config.client_node_count,
+        ConfigFields.CONTEXT_KEY: config.context_key,
+        ConfigFields.CUSTOM_CONFIG_FILES: config.custom_config_files,
+        ConfigFields.CUSTOM_ROLE_ARN: config.custom_role_arn,
+        ConfigFields.DATA_NODE_STORAGE: config.data_node_storage,
+        ConfigFields.ENABLE_MONITORING: config.enable_monitoring,
+        ConfigFields.ENABLE_REMOTE_STORE: config.enable_remote_store,
+        ConfigFields.INGEST_NODE_COUNT: config.ingest_node_count,
+        ConfigFields.JVM_SYS_PROPS: config.jvm_sys_props,
+        ConfigFields.LOAD_BALANCER_TYPE: config.load_balancer_type,
+        ConfigFields.MANAGER_NODE_COUNT: config.manager_node_count,
+        ConfigFields.MAP_OPENSEARCH_DASHBOARDS_PORT_TO: config.map_opensearch_dashboards_port_to,
+        ConfigFields.MAP_OPENSEARCH_PORT_TO: config.map_opensearch_port_to,
+        ConfigFields.ML_INSTANCE_TYPE: config.ml_instance_type,
+        ConfigFields.ML_NODE_COUNT: config.ml_node_count,
+        ConfigFields.ML_NODE_STORAGE: config.ml_node_storage,
+        ConfigFields.NETWORK_STACK_SUFFIX: config.network_stack_suffix,
+        ConfigFields.SECURITY_GROUP_ID: config.security_group_id,
+        ConfigFields.STORAGE_VOLUME_TYPE: config.storage_volume_type,
+        ConfigFields.USE_INSTANCE_BASED_STORAGE: config.use_instance_based_storage,
+        ConfigFields.VPC_ID: config.vpc_id,
+        
         # Benchmark config
         ConfigFields.CLUSTER_ENDPOINT: config.cluster_endpoint,
         ConfigFields.WORKLOAD_TYPE: config.workload_type,
-        ConfigFields.PIPELINE: config.pipeline
+        ConfigFields.PIPELINE: config.pipeline,
+        
+        # S3 Configuration
+        ConfigFields.S3_BUCKET: config.s3_bucket
     }
     
     # Create tasks dictionary
