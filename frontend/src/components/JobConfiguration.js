@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React from "react";
 import {
   EuiIcon,
@@ -10,6 +15,7 @@ import {
 import BuildConfiguration from "./configurations/BuildConfiguration";
 import DeployConfiguration from "./configurations/DeployConfiguration";
 import BenchmarkConfiguration from "./configurations/BenchmarkConfiguration";
+import S3Configuration from "./configurations/S3Configuration";
 
 // JobConfiguration component
 const JobConfiguration = ({
@@ -154,6 +160,12 @@ const JobConfiguration = ({
               />
             </div>
           )}
+
+          {/* S3 Configuration */}
+          <div style={{ marginBottom: "1rem" }}>
+            <S3Configuration config={config} onChange={onConfigChange} />
+          </div>
+
           {/* Launch Button */}
           <div style={{ textAlign: "center", marginTop: "2rem" }}>
             <EuiButton
