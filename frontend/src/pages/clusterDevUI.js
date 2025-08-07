@@ -55,6 +55,12 @@ export default function ClusterDevUI() {
     pipeline: "benchmark-only",
     custom_benchmark_params: [],
 
+    // EC2 Benchmark config
+    use_ec2_benchmark: false,
+    instance_type: "t4g.medium",
+    key_name: "",
+    timeout_minutes: 60,
+
     // S3 Configuration
     s3_bucket: "",
   });
@@ -159,13 +165,38 @@ export default function ClusterDevUI() {
   }, [fetchJobs]);
 
   const handleTaskToggle = (task) => {
-    setSelectedTasks((prev) => ({ ...prev, [task]: !prev[task] }));
+    setSelectedTasks((prev) => {
+      const newTasks = { ...prev, [task]: !prev[task] };
+
+      // If deploy is being unselected, clear EC2 configs
+      if (task === "deploy" && prev.deploy && !newTasks.deploy) {
+        setConfig((prevConfig) => ({
+          ...prevConfig,
+          use_ec2_benchmark: false,
+          instance_type: "t4g.medium",
+          key_name: "",
+          subnet_id: "",
+          timeout_minutes: 60,
+        }));
+      }
+
+      return newTasks;
+    });
   };
 
   const handleConfigChange = (field) => (e) => {
     const value =
       e.target.type === "checkbox" ? e.target.checked : e.target.value;
-    setConfig((prev) => ({ ...prev, [field]: value }));
+    setConfig((prev) => {
+      const newConfig = { ...prev, [field]: value };
+
+      // Clear admin password when security is disabled
+      if (field === "security_disabled" && value === true) {
+        newConfig.admin_password = "";
+      }
+
+      return newConfig;
+    });
   };
 
   const handleLaunchJob = async () => {
@@ -178,56 +209,78 @@ export default function ClusterDevUI() {
       if (selectedTasks.deploy) queryParams.set("deploy", "true");
       if (selectedTasks.benchmark) queryParams.set("benchmark", "true");
 
+      // Prepare the request payload
+      const requestPayload = {
+        // Build config
+        ...(selectedTasks.build && {
+          manifest_yml: config.manifest_yml,
+          custom_build_params: config.custom_build_params,
+        }),
+
+        // Deploy config
+        ...(selectedTasks.deploy && {
+          suffix: config.suffix,
+          ...(config.distribution_url && {
+            distribution_url: config.distribution_url,
+          }),
+          security_disabled: config.security_disabled,
+          cpu_arch: config.cpu_arch,
+          data_instance_type: config.data_instance_type,
+          data_node_count: config.data_node_count,
+          dist_version: config.dist_version,
+          min_distribution: config.min_distribution,
+          single_node_cluster: config.single_node_cluster,
+          server_access_type: config.server_access_type,
+          restrict_server_access_to: config.restrict_server_access_to,
+          use_50_percent_heap: config.use_50_percent_heap,
+          is_internal: config.is_internal,
+          custom_deploy_params: config.custom_deploy_params,
+
+          // include admin_password if security is disabled
+          ...(config.admin_password &&
+            !config.security_disabled && {
+              admin_password: config.admin_password,
+            }),
+        }),
+
+        // Benchmark config
+        ...(selectedTasks.benchmark && {
+          ...(config.cluster_endpoint && {
+            cluster_endpoint: config.cluster_endpoint,
+          }),
+          workload_type: config.workload_type,
+          pipeline: config.pipeline,
+          custom_benchmark_params: config.custom_benchmark_params,
+
+          // EC2 Benchmark config - only include when deploy is selected
+          ...(selectedTasks.deploy && {
+            use_ec2_benchmark: config.use_ec2_benchmark || false,
+            instance_type: config.instance_type || "t4g.medium",
+            key_name: config.key_name || "",
+            ...(config.subnet_id && { subnet_id: config.subnet_id }),
+            timeout_minutes: config.timeout_minutes || 60,
+          }),
+        }),
+
+        // S3 Configuration
+        s3_bucket: config.s3_bucket || "",
+      };
+
+      // Debug logging
+      console.log("🔍 Frontend sending payload:", requestPayload);
+      console.log("🔍 EC2 config:", {
+        use_ec2_benchmark: config.use_ec2_benchmark,
+        key_name: config.key_name,
+        subnet_id: config.subnet_id,
+      });
+
       // Single workflow API call to start the job
       const workflowResponse = await fetch(
         `${API_ENDPOINTS.WORKFLOW}?${queryParams}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            // Build config
-            ...(selectedTasks.build && {
-              manifest_yml: config.manifest_yml,
-              custom_build_params: config.custom_build_params,
-            }),
-
-            // Deploy config
-            ...(selectedTasks.deploy && {
-              suffix: config.suffix,
-              ...(config.distribution_url && {
-                distribution_url: config.distribution_url,
-              }),
-              security_disabled: config.security_disabled,
-              cpu_arch: config.cpu_arch,
-              data_instance_type: config.data_instance_type,
-              data_node_count: config.data_node_count,
-              dist_version: config.dist_version,
-              min_distribution: config.min_distribution,
-              single_node_cluster: config.single_node_cluster,
-              server_access_type: config.server_access_type,
-              restrict_server_access_to: config.restrict_server_access_to,
-              use_50_percent_heap: config.use_50_percent_heap,
-              is_internal: config.is_internal,
-              custom_deploy_params: config.custom_deploy_params,
-
-              ...(config.admin_password && {
-                admin_password: config.admin_password,
-              }),
-            }),
-
-            // Benchmark config
-            ...(selectedTasks.benchmark && {
-              ...(config.cluster_endpoint && {
-                cluster_endpoint: config.cluster_endpoint,
-              }),
-              workload_type: config.workload_type,
-              pipeline: config.pipeline,
-              custom_benchmark_params: config.custom_benchmark_params,
-            }),
-
-            // S3 Configuration (always include)
-            s3_bucket: config.s3_bucket || "",
-          }),
+          body: JSON.stringify(requestPayload),
         }
       );
 
@@ -303,7 +356,7 @@ export default function ClusterDevUI() {
         errors.push("S3 bucket name is required");
       }
     }
-    
+
     return errors;
   };
 
