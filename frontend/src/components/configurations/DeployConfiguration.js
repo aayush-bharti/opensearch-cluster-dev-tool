@@ -264,7 +264,6 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
           <EuiFlexItem>
             <EuiFormRow
               label="Server Access Type"
-              helpText="Choose how to restrict server access"
               style={{ maxWidth: "490px" }}
             >
               <EuiSelect
@@ -272,7 +271,7 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
                 value={config.server_access_type || ""}
                 onChange={onChange("server_access_type")}
                 options={[
-                  { value: "", text: "Use Default" },
+                  { value: "", text: "Select" },
                   { value: "prefixList", text: "Prefix List" },
                   { value: "ipv4", text: "IPv4 CIDR" },
                   { value: "ipv6", text: "IPv6 CIDR" },
@@ -291,7 +290,6 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
                 fullWidth
                 value={config.restrict_server_access_to || ""}
                 onChange={onChange("restrict_server_access_to")}
-                placeholder="Leave blank for default"
               />
             </EuiFormRow>
           </EuiFlexItem>

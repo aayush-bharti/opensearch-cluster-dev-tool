@@ -14,6 +14,8 @@ import {
   EuiFlexItem,
   EuiPanel,
   EuiSpacer,
+  EuiSwitch,
+  EuiFieldNumber,
 } from "@opensearch-project/oui";
 import CustomParameters from "./CustomParameters";
 
@@ -102,6 +104,107 @@ const BenchmarkConfiguration = ({ config, onChange, selectedTasks }) => {
         }
         placeholder="Enter benchmark parameter (e.g., --client-options timeout:60s)"
       />
+
+      <EuiSpacer size="l" />
+
+      {/* EC2 Benchmark Configuration: show when deploy is selected with benchmark */}
+      {selectedTasks.deploy && selectedTasks.benchmark && (
+        <>
+          <EuiTitle size="m">
+            <h4>EC2 Benchmark Configuration (Optional)</h4>
+          </EuiTitle>
+
+          <EuiSpacer size="m" />
+
+          <EuiFormRow>
+            <EuiSwitch
+              id="use-ec2-benchmark"
+              label="Use EC2 Instance for Benchmark"
+              checked={config.use_ec2_benchmark || false}
+              onChange={(e) =>
+                onChange("use_ec2_benchmark")({
+                  target: { value: e.target.checked },
+                })
+              }
+            />
+          </EuiFormRow>
+        </>
+      )}
+
+      {config.use_ec2_benchmark && (
+        <>
+          <EuiSpacer size="m" />
+
+          <EuiFlexGroup gutterSize="l">
+            <EuiFlexItem>
+              <EuiFormRow label="Instance Type" fullWidth>
+                <EuiSelect
+                  fullWidth
+                  value={config.instance_type || "t4g.medium"}
+                  onChange={onChange("instance_type")}
+                  options={[
+                    { value: "t4g.medium", text: "t4g.medium (ARM)" },
+                    { value: "t4g.xlarge", text: "t4g.xlarge (ARM)" },
+                    { value: "c7g.xlarge", text: "c7g.xlarge (ARM)" },
+                    { value: "m7g.xlarge", text: "m7g.xlarge (ARM)" },
+                    { value: "c5.2xlarge", text: "c5.2xlarge (x86)" },
+                    { value: "m5.xlarge", text: "m5.xlarge (x86)" },
+                  ]}
+                />
+              </EuiFormRow>
+            </EuiFlexItem>
+            <EuiFlexItem>
+              <EuiFormRow label="Key Pair Name" fullWidth>
+                <EuiFieldText
+                  fullWidth
+                  value={config.key_name || ""}
+                  onChange={onChange("key_name")}
+                  placeholder="Enter EC2 key pair name..."
+                />
+              </EuiFormRow>
+            </EuiFlexItem>
+          </EuiFlexGroup>
+
+          <EuiSpacer size="m" />
+
+          <EuiFlexGroup gutterSize="l">
+            <EuiFlexItem>
+              <EuiFormRow label="Subnet ID (Optional)" fullWidth>
+                <EuiFieldText
+                  fullWidth
+                  value={config.subnet_id || ""}
+                  onChange={onChange("subnet_id")}
+                  placeholder="Leave empty to use AWS default VPC & subnet..."
+                />
+              </EuiFormRow>
+            </EuiFlexItem>
+            <EuiFlexItem>
+              <EuiFormRow label="Your Public IP (Optional)" fullWidth>
+                <EuiFieldText
+                  fullWidth
+                  value={config.my_ip || ""}
+                  onChange={onChange("my_ip")}
+                  placeholder="Not needed - using default security group"
+                  disabled={true}
+                />
+              </EuiFormRow>
+            </EuiFlexItem>
+          </EuiFlexGroup>
+
+          <EuiSpacer size="m" />
+
+          <EuiFormRow label="Timeout (minutes)" fullWidth>
+            <EuiFieldNumber
+              fullWidth
+              value={config.timeout_minutes || 60}
+              onChange={onChange("timeout_minutes")}
+              min={1}
+              max={480}
+              placeholder="60"
+            />
+          </EuiFormRow>
+        </>
+      )}
     </EuiPanel>
   );
 };

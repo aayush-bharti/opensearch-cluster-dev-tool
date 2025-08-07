@@ -19,6 +19,7 @@ import {
   EuiFlexItem,
   EuiBadge,
   EuiHorizontalRule,
+  EuiCodeBlock,
 } from "@opensearch-project/oui";
 
 // handles the job configuration in the task history section
@@ -36,6 +37,28 @@ const JobConfigurationModal = ({ isVisible, onClose, job }) => {
     if (typeof value === "string" && value.trim() === "") {
       return "Not set";
     }
+
+    // Handle custom parameters arrays
+    if (
+      Array.isArray(value) &&
+      value.length > 0 &&
+      value[0] &&
+      typeof value[0] === "object" &&
+      "key" in value[0] &&
+      "value" in value[0]
+    ) {
+      // custom parameters array and extract just the values
+      const values = value
+        .map((param) => param.value)
+        .filter((val) => val && val.trim() !== "");
+      return values.join(", ");
+    }
+
+    // Handle other arrays and objects
+    if (Array.isArray(value) || typeof value === "object") {
+      return JSON.stringify(value, null, 2);
+    }
+
     return value.toString();
   };
 
@@ -45,12 +68,16 @@ const JobConfigurationModal = ({ isVisible, onClose, job }) => {
       return null;
     }
 
-    const hasConfig = fields.some(
-      (field) =>
-        config[field] !== undefined &&
-        config[field] !== null &&
-        config[field] !== ""
-    );
+    // hasConfig check
+    const hasConfig = fields.some((field) => {
+      const value = config[field];
+      return (
+        value !== undefined &&
+        value !== null &&
+        (typeof value !== "string" || value.trim() !== "") &&
+        (typeof value !== "object" || Object.keys(value).length > 0)
+      );
+    });
 
     if (!hasConfig) return null;
 
@@ -70,7 +97,8 @@ const JobConfigurationModal = ({ isVisible, onClose, job }) => {
             if (
               value === undefined ||
               value === null ||
-              (typeof value === "string" && value.trim() === "")
+              (typeof value === "string" && value.trim() === "") ||
+              (Array.isArray(value) && value.length === 0)
             ) {
               return null;
             }
@@ -96,20 +124,23 @@ const JobConfigurationModal = ({ isVisible, onClose, job }) => {
                   <EuiFlexItem>
                     <EuiText size="s">
                       {field === "manifest_yml" ? (
-                        <div
-                          style={{
-                            backgroundColor: "#f8f9fa",
-                            padding: "8px",
-                            borderRadius: "4px",
-                            fontFamily: "monospace",
-                            fontSize: "0.8em",
-                            maxHeight: "200px",
-                            overflowY: "auto",
-                            whiteSpace: "pre-wrap",
-                          }}
+                        <EuiCodeBlock
+                          language="yaml"
+                          isCopyable={true}
+                          overflowHeight={200}
                         >
                           {value}
-                        </div>
+                        </EuiCodeBlock>
+                      ) :
+                      field.includes("custom_") ? (
+                        <EuiCodeBlock
+                          language="json"
+                          isCopyable={true}
+                          style={{ maxHeight: "5px" }}
+                          overflowHeight={100}
+                        >
+                          {formatConfigValue(value)}
+                        </EuiCodeBlock>
                       ) : (
                         formatConfigValue(value)
                       )}
@@ -124,7 +155,8 @@ const JobConfigurationModal = ({ isVisible, onClose, job }) => {
     );
   };
 
-  const buildFields = ["manifest_yml"];
+  const buildFields = ["manifest_yml", "custom_build_params"];
+  
   const deployFields = [
     "distribution_url",
     "suffix",
@@ -140,8 +172,23 @@ const JobConfigurationModal = ({ isVisible, onClose, job }) => {
     "use_50_percent_heap",
     "is_internal",
     "admin_password",
+    "custom_deploy_params",
   ];
-  const benchmarkFields = ["cluster_endpoint", "workload_type", "pipeline"];
+
+  const benchmarkFields = [
+    "cluster_endpoint",
+    "workload_type",
+    "pipeline",
+    "custom_benchmark_params",
+    "use_ec2_benchmark",
+  ];
+
+  const ec2BenchmarkFields = [
+    "instance_type",
+    "key_name",
+    "timeout_minutes",
+  ];
+
   const s3Fields = ["s3_bucket"];
 
   return (
@@ -202,7 +249,7 @@ const JobConfigurationModal = ({ isVisible, onClose, job }) => {
         {renderConfigSection(
           "Benchmark Configuration",
           job.config,
-          benchmarkFields,
+          [...benchmarkFields, ...(job.config.use_ec2_benchmark ? ec2BenchmarkFields : [])],
           "benchmark"
         )}
 
