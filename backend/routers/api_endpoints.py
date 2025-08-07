@@ -1,3 +1,6 @@
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
@@ -5,11 +8,9 @@ from scripts.build import run_build_process
 from scripts.deploy import run_deploy_process
 from scripts.benchmark import run_benchmark_process
 from job_tracker import job_tracker, JobStatus, TaskStatus
-from constants import Status, TaskTypes, ResultFields, ConfigFields, Defaults, ErrorMessages
+from constants import Status, TaskTypes, ResultFields, ConfigFields, ErrorMessages
 from datetime import datetime
-import asyncio
 import logging
-import os
 
 # Create new router for auto-credential endpoints
 router = APIRouter()
@@ -21,28 +22,34 @@ class WorkflowConfig(BaseModel):
     # Build configuration
     manifest_yml: Optional[str] = None
     suffix: Optional[str] = None
+    custom_build_params: Optional[list] = None
     
     # Deploy configuration
     distribution_url: Optional[str] = None
-    security_disabled: bool = Defaults.SECURITY_DISABLED
-    cpu_arch: str = Defaults.CPU_ARCH
-    single_node_cluster: bool = Defaults.SINGLE_NODE_CLUSTER
-    data_instance_type: str = Defaults.DATA_INSTANCE_TYPE
-    data_node_count: int = Defaults.DATA_NODE_COUNT
-    dist_version: str = Defaults.DIST_VERSION
-    min_distribution: bool = Defaults.MIN_DISTRIBUTION
-    server_access_type: str = Defaults.SERVER_ACCESS_TYPE
-    restrict_server_access_to: str = Defaults.RESTRICT_SERVER_ACCESS_TO
-    use_50_percent_heap: bool = Defaults.USE_50_PERCENT_HEAP
-    is_internal: bool = Defaults.IS_INTERNAL
+    security_disabled: bool = None
+    cpu_arch: str = None
+    single_node_cluster: bool = None
+    data_instance_type: Optional[str] = None
+    data_node_count: Optional[int] = None
+    dist_version: str = None
+    min_distribution: bool = None
+    server_access_type: str = None
+    restrict_server_access_to: str = None
+    use_50_percent_heap: Optional[bool] = None
+    is_internal: Optional[bool] = None
+    custom_deploy_params: Optional[list] = None
+    admin_password: Optional[str] = None
     
     # Benchmark configuration
     cluster_endpoint: Optional[str] = None
     workload_type: Optional[str] = None
-    pipeline: str = Defaults.PIPELINE
+    pipeline: Optional[str] = None
+    custom_benchmark_params: Optional[list] = None
+    
+    # S3 Configuration
+    s3_bucket: str = None
 
 # Task execution functions
-# handles the build task process
 def execute_build_task(job_id: str, config: dict, workflow_timestamp: str) -> dict:
     """Execute build task and return result."""
     auto_logger.info(f"🔨 Starting build operation for job {job_id}")
@@ -50,13 +57,18 @@ def execute_build_task(job_id: str, config: dict, workflow_timestamp: str) -> di
     job_tracker.update_progress(job_id, "Building OpenSearch...")
     
     try:
-        # run the build process
+        # Prepare build configuration with S3 bucket
+        build_config = {
+            ConfigFields.MANIFEST_YML: config[ConfigFields.MANIFEST_YML],
+            ConfigFields.S3_BUCKET: config.get(ConfigFields.S3_BUCKET),
+            ConfigFields.CUSTOM_BUILD_PARAMS: config.get(ConfigFields.CUSTOM_BUILD_PARAMS)
+        }
+        
         build_result = run_build_process(
-            config[ConfigFields.MANIFEST_YML],
+            build_config,
             workflow_timestamp
         )
         
-        # check if the build was successful
         if build_result.get(ResultFields.STATUS) == Status.SUCCESS:
             auto_logger.info(f"✅ Build completed successfully for job {job_id}")
             job_tracker.update_task_status(job_id, TaskTypes.BUILD, TaskStatus.COMPLETED, build_result)
@@ -69,7 +81,7 @@ def execute_build_task(job_id: str, config: dict, workflow_timestamp: str) -> di
         job_tracker.update_task_status(job_id, TaskTypes.BUILD, TaskStatus.FAILED, error=str(e))
         raise
 
-# handles the deploy task process
+# execute the deploy task
 def execute_deploy_task(job_id: str, config: dict, workflow_timestamp: str) -> dict:
     """Execute deploy task and return result."""
     auto_logger.info(f"🚀 Starting deploy operation for job {job_id}")
@@ -91,16 +103,20 @@ def execute_deploy_task(job_id: str, config: dict, workflow_timestamp: str) -> d
             ConfigFields.SERVER_ACCESS_TYPE: config[ConfigFields.SERVER_ACCESS_TYPE],
             ConfigFields.RESTRICT_SERVER_ACCESS_TO: config[ConfigFields.RESTRICT_SERVER_ACCESS_TO],
             ConfigFields.USE_50_PERCENT_HEAP: config[ConfigFields.USE_50_PERCENT_HEAP],
-            ConfigFields.IS_INTERNAL: config[ConfigFields.IS_INTERNAL]
+            ConfigFields.IS_INTERNAL: config[ConfigFields.IS_INTERNAL],
+            ConfigFields.ADMIN_PASSWORD: config.get(ConfigFields.ADMIN_PASSWORD),
+            ConfigFields.S3_BUCKET: config.get(ConfigFields.S3_BUCKET),
+            ConfigFields.CUSTOM_DEPLOY_PARAMS: config.get(ConfigFields.CUSTOM_DEPLOY_PARAMS)
         }
         
-        # run the deploy process
+        # Add S3 bucket to deploy config
+        auto_logger.info(f"🔍 S3 bucket from config: {config.get(ConfigFields.S3_BUCKET)}")
+        
         deploy_result = run_deploy_process(
             deploy_config,
             workflow_timestamp
         )
         
-        # check if the deploy was successful
         if deploy_result.get(ResultFields.STATUS) == Status.SUCCESS:
             auto_logger.info(f"✅ Deploy completed successfully for job {job_id}")
             job_tracker.update_task_status(job_id, TaskTypes.DEPLOY, TaskStatus.COMPLETED, deploy_result)
@@ -113,7 +129,7 @@ def execute_deploy_task(job_id: str, config: dict, workflow_timestamp: str) -> d
         job_tracker.update_task_status(job_id, TaskTypes.DEPLOY, TaskStatus.FAILED, error=str(e))
         raise
 
-# handles the benchmark task process
+# execute the benchmark task
 def execute_benchmark_task(job_id: str, config: dict, workflow_timestamp: str) -> dict:
     """Execute benchmark task and return result."""
     auto_logger.info(f"📊 Starting benchmark operation for job {job_id}")
@@ -124,16 +140,16 @@ def execute_benchmark_task(job_id: str, config: dict, workflow_timestamp: str) -
         benchmark_config = {
             ConfigFields.CLUSTER_ENDPOINT: config[ConfigFields.CLUSTER_ENDPOINT],
             ConfigFields.WORKLOAD_TYPE: config[ConfigFields.WORKLOAD_TYPE],
-            ConfigFields.PIPELINE: config[ConfigFields.PIPELINE]
+            ConfigFields.PIPELINE: config[ConfigFields.PIPELINE],
+            ConfigFields.S3_BUCKET: config.get(ConfigFields.S3_BUCKET),
+            ConfigFields.CUSTOM_BENCHMARK_PARAMS: config.get(ConfigFields.CUSTOM_BENCHMARK_PARAMS)
         }
         
-        # run the benchmark process
         benchmark_result = run_benchmark_process(
             benchmark_config,
             workflow_timestamp
         )
         
-        # check if the benchmark was successful
         if benchmark_result.get(ResultFields.STATUS) == Status.SUCCESS:
             auto_logger.info(f"✅ Benchmark completed successfully for job {job_id}")
             job_tracker.update_task_status(job_id, TaskTypes.BENCHMARK, TaskStatus.COMPLETED, benchmark_result)
@@ -258,6 +274,7 @@ async def execute_workflow(
     config_dict = {
         # Build config
         ConfigFields.MANIFEST_YML: config.manifest_yml,
+        ConfigFields.CUSTOM_BUILD_PARAMS: config.custom_build_params,
         
         # Deploy config
         ConfigFields.SUFFIX: config.suffix,
@@ -273,11 +290,17 @@ async def execute_workflow(
         ConfigFields.RESTRICT_SERVER_ACCESS_TO: config.restrict_server_access_to,
         ConfigFields.USE_50_PERCENT_HEAP: config.use_50_percent_heap,
         ConfigFields.IS_INTERNAL: config.is_internal,
+        ConfigFields.ADMIN_PASSWORD: config.admin_password,
+        ConfigFields.CUSTOM_DEPLOY_PARAMS: config.custom_deploy_params,
         
         # Benchmark config
         ConfigFields.CLUSTER_ENDPOINT: config.cluster_endpoint,
         ConfigFields.WORKLOAD_TYPE: config.workload_type,
-        ConfigFields.PIPELINE: config.pipeline
+        ConfigFields.PIPELINE: config.pipeline,
+        ConfigFields.CUSTOM_BENCHMARK_PARAMS: config.custom_benchmark_params,
+        
+        # S3 Configuration
+        ConfigFields.S3_BUCKET: config.s3_bucket
     }
     
     # Create tasks dictionary
@@ -328,7 +351,7 @@ async def list_jobs(limit: int = Query(50, ge=1, le=100)):
 # api endpoint to cancel a job
 @router.post("/jobs/{job_id}/cancel")
 async def cancel_job(job_id: str):
-    """Cancel a running job (if possible)."""
+    """Cancel a running job"""
     job_data = job_tracker.get_job_status(job_id)
     if not job_data:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
@@ -352,4 +375,3 @@ async def delete_job(job_id: str):
         return {"message": f"Job {job_id} deleted successfully"}
     else:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
-    

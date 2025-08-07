@@ -1,3 +1,6 @@
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+
 """Constants used throughout the OpenSearch workflow application."""
 
 # Status constants
@@ -15,6 +18,7 @@ class TaskTypes:
 # Result field constants
 class ResultFields:
     STATUS = "status"
+    MESSAGE = "message"
     S3_INFO = "s3_info"
     S3_URI = "s3_uri"
     CLUSTER_INFO = "cluster_info"
@@ -26,8 +30,10 @@ class ResultFields:
 
 # Configuration field constants
 class ConfigFields:
+    # Build config
     MANIFEST_YML = "manifest_yml"
     SUFFIX = "suffix"
+    # Deploy config
     DISTRIBUTION_URL = "distribution_url"
     SECURITY_DISABLED = "security_disabled"
     CPU_ARCH = "cpu_arch"
@@ -40,27 +46,22 @@ class ConfigFields:
     RESTRICT_SERVER_ACCESS_TO = "restrict_server_access_to"
     USE_50_PERCENT_HEAP = "use_50_percent_heap"
     IS_INTERNAL = "is_internal"
+    ADMIN_PASSWORD = "admin_password"
+    # Benchmark config
     CLUSTER_ENDPOINT = "cluster_endpoint"
     WORKLOAD_TYPE = "workload_type"
     PIPELINE = "pipeline"
-
-# Default values
-class Defaults:
-    SECURITY_DISABLED = True
-    CPU_ARCH = "arm64"
-    SINGLE_NODE_CLUSTER = False
-    DATA_INSTANCE_TYPE = "r6g.2xlarge"
-    DATA_NODE_COUNT = 3
-    DIST_VERSION = "3.0.0"
-    MIN_DISTRIBUTION = False
-    SERVER_ACCESS_TYPE = ""
-    RESTRICT_SERVER_ACCESS_TO = ""
-    USE_50_PERCENT_HEAP = True
-    IS_INTERNAL = False
-    PIPELINE = "benchmark-only"
+    
+    # S3 Configuration
+    S3_BUCKET = "s3_bucket"    
+    
+    # Custom parameters for each task type
+    CUSTOM_BUILD_PARAMS = "custom_build_params"
+    CUSTOM_DEPLOY_PARAMS = "custom_deploy_params"
+    CUSTOM_BENCHMARK_PARAMS = "custom_benchmark_params"
 
 # Error messages
 class ErrorMessages:
     BUILD_S3_UPLOAD_FAILED = "Build completed but S3 upload failed. Cannot proceed with deployment."
     DEPLOY_CLUSTER_ENDPOINT_NOT_FOUND = "Deploy completed but cluster endpoint not found. Cannot proceed with benchmark."
-    WORKFLOW_INTERRUPTED = "Process interrupted (server restart)" 
+    WORKFLOW_INTERRUPTED = "Process interrupted (server restart)"
