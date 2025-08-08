@@ -10,7 +10,7 @@ from typing import Dict, Any
 from datetime import datetime
 import json
 import tempfile
-from constants import TaskTypes, ResultFields, ConfigFields
+from constants import TaskTypes, ResultFields, ConfigFields, AWSConfig
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class S3Uploader:
     """S3 upload service with timestamp-based folder organization."""
     
-    def __init__(self, region: str = "us-east-1", bucket_name: str = None, workflow_timestamp: str = None):
+    def __init__(self, region: str = AWSConfig.DEFAULT_REGION, bucket_name: str = None, workflow_timestamp: str = None):
         self.region = region
         self.bucket_name = bucket_name
         # Use provided timestamp or generate new one for this workflow session
@@ -41,7 +41,7 @@ class S3Uploader:
             if e.response['Error']['Code'] == '404':
                 logger.info(f"📤 Creating S3 bucket: {self.bucket_name}")
                 try:
-                    if self.region == 'us-east-1':
+                    if self.region == AWSConfig.DEFAULT_REGION:
                         self.s3_client.create_bucket(Bucket=self.bucket_name)
                     else:
                         self.s3_client.create_bucket(
@@ -109,11 +109,11 @@ class S3Uploader:
             
             return {
                 ResultFields.S3_URI: s3_uri,
-                "https_url": https_url,
-                "bucket_name": self.bucket_name,
-                "s3_key": s3_key,
-                "file_size": file_size,
-                "timestamp": self.workflow_timestamp
+                ResultFields.HTTPS_URL: https_url,
+                ResultFields.BUCKET_NAME: self.bucket_name,
+                ResultFields.S3_KEY: s3_key,
+                ResultFields.FILE_SIZE: file_size,
+                ResultFields.TIMESTAMP: self.workflow_timestamp
             }
             
         except Exception as e:
@@ -151,11 +151,11 @@ class S3Uploader:
             
             return {
                 ResultFields.S3_URI: s3_uri,
-                "https_url": https_url,
-                "bucket_name": self.bucket_name,
-                "s3_key": s3_key,
-                "file_size": file_size,
-                "timestamp": self.workflow_timestamp
+                ResultFields.HTTPS_URL: https_url,
+                ResultFields.BUCKET_NAME: self.bucket_name,
+                ResultFields.S3_KEY: s3_key,
+                ResultFields.FILE_SIZE: file_size,
+                ResultFields.TIMESTAMP: self.workflow_timestamp
             }
             
         except Exception as e:
@@ -194,9 +194,9 @@ class S3Uploader:
         
         # Add metadata to results
         results_data.update({
-            "upload_date": datetime.now().strftime("%m/%d/%y, %H:%M:%S"),
-            "task_type": task_type,
-            "region": self.region
+            ResultFields.UPLOAD_DATE: datetime.now().strftime("%m/%d/%y, %H:%M:%S"),
+            ResultFields.TASK_TYPE: task_type,
+            ResultFields.REGION: self.region
         })
         
         # Add timing information if provided

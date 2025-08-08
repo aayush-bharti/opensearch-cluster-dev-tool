@@ -7,6 +7,7 @@ from typing import Optional
 from scripts.build import run_build_process
 from scripts.deploy import run_deploy_process
 from scripts.benchmark import run_benchmark_process
+from scripts.ec2_benchmark_orchestrator import run_ec2_benchmark_workflow
 from job_tracker import job_tracker, JobStatus, TaskStatus
 from constants import Status, TaskTypes, ResultFields, ConfigFields, ErrorMessages
 from datetime import datetime
@@ -46,6 +47,14 @@ class WorkflowConfig(BaseModel):
     pipeline: Optional[str] = None
     custom_benchmark_params: Optional[list] = None
     
+    # EC2 Benchmark configuration
+    use_ec2_benchmark: Optional[bool] = False
+    instance_type: Optional[str] = "t3.medium"
+    key_name: Optional[str] = None
+    subnet_id: Optional[str] = None
+    my_ip: Optional[str] = None
+    timeout_minutes: Optional[int] = 60
+    
     # S3 Configuration
     s3_bucket: str = None
 
@@ -54,7 +63,7 @@ def execute_build_task(job_id: str, config: dict, workflow_timestamp: str) -> di
     """Execute build task and return result."""
     auto_logger.info(f"🔨 Starting build operation for job {job_id}")
     job_tracker.update_task_status(job_id, TaskTypes.BUILD, TaskStatus.RUNNING)
-    job_tracker.update_progress(job_id, "Building OpenSearch...")
+    job_tracker.update_progress(job_id, "Running build...")
     
     try:
         # Prepare build configuration with S3 bucket
@@ -130,25 +139,73 @@ def execute_deploy_task(job_id: str, config: dict, workflow_timestamp: str) -> d
         raise
 
 # execute the benchmark task
-def execute_benchmark_task(job_id: str, config: dict, workflow_timestamp: str) -> dict:
+def execute_benchmark_task(job_id: str, config: dict, workflow_timestamp: str, deploy_result: dict = None) -> dict:
     """Execute benchmark task and return result."""
     auto_logger.info(f"📊 Starting benchmark operation for job {job_id}")
     job_tracker.update_task_status(job_id, TaskTypes.BENCHMARK, TaskStatus.RUNNING)
     job_tracker.update_progress(job_id, "Running benchmark...")
     
     try:
-        benchmark_config = {
-            ConfigFields.CLUSTER_ENDPOINT: config[ConfigFields.CLUSTER_ENDPOINT],
-            ConfigFields.WORKLOAD_TYPE: config[ConfigFields.WORKLOAD_TYPE],
-            ConfigFields.PIPELINE: config[ConfigFields.PIPELINE],
-            ConfigFields.S3_BUCKET: config.get(ConfigFields.S3_BUCKET),
-            ConfigFields.CUSTOM_BENCHMARK_PARAMS: config.get(ConfigFields.CUSTOM_BENCHMARK_PARAMS)
-        }
+        # Check if EC2 benchmark is requested
+        use_ec2_benchmark = config.get("use_ec2_benchmark", False)
         
-        benchmark_result = run_benchmark_process(
-            benchmark_config,
-            workflow_timestamp
-        )
+        # Handle different boolean representations
+        if isinstance(use_ec2_benchmark, str):
+            use_ec2_benchmark = use_ec2_benchmark.lower() in ['true', '1', 'yes']
+        elif isinstance(use_ec2_benchmark, int):
+            use_ec2_benchmark = bool(use_ec2_benchmark)
+        
+        # Debug logging
+        auto_logger.info(f"🔍 EC2 benchmark check for job {job_id}:")
+        auto_logger.info(f"   use_ec2_benchmark value: {use_ec2_benchmark}")
+        auto_logger.info(f"   use_ec2_benchmark type: {type(use_ec2_benchmark)}")
+        auto_logger.info(f"   key_name: {config.get('key_name')}")
+        auto_logger.info(f"   subnet_id: {config.get('subnet_id')}")
+        
+        # if ec2 benchmark is selected, use the ec2 benchmark workflow
+        if use_ec2_benchmark:
+            auto_logger.info(f"🚀 Using EC2 benchmark workflow for job {job_id}")
+            
+            # Prepare EC2 benchmark configuration
+            ec2_benchmark_config = {
+                ConfigFields.CLUSTER_ENDPOINT: config[ConfigFields.CLUSTER_ENDPOINT],
+                ConfigFields.WORKLOAD_TYPE: config[ConfigFields.WORKLOAD_TYPE],
+                ConfigFields.PIPELINE: config.get(ConfigFields.PIPELINE),
+                ConfigFields.CUSTOM_BENCHMARK_PARAMS: config.get(ConfigFields.CUSTOM_BENCHMARK_PARAMS),
+                ConfigFields.S3_BUCKET: config.get(ConfigFields.S3_BUCKET),
+                "instance_type": config.get(ConfigFields.INSTANCE_TYPE, "t3.medium"),
+                "key_name": config.get(ConfigFields.KEY_NAME),
+                "subnet_id": config.get(ConfigFields.SUBNET_ID),
+                "my_ip": config.get(ConfigFields.MY_IP),
+                "timeout_minutes": config.get(ConfigFields.TIMEOUT_MINUTES, 60)
+            }
+            
+            # validate required EC2 parameters
+            if not ec2_benchmark_config["key_name"]:
+                raise Exception("key_name is required for EC2 benchmark")
+            
+            benchmark_result = run_ec2_benchmark_workflow(
+                ec2_benchmark_config,
+                workflow_timestamp,
+                deploy_result
+            )
+        else:
+            # use local benchmark
+            auto_logger.info(f"📊 Using local benchmark for job {job_id}")
+            
+            # Prepare benchmark configuration
+            benchmark_config = {
+                ConfigFields.CLUSTER_ENDPOINT: config[ConfigFields.CLUSTER_ENDPOINT],
+                ConfigFields.WORKLOAD_TYPE: config[ConfigFields.WORKLOAD_TYPE],
+                ConfigFields.PIPELINE: config.get(ConfigFields.PIPELINE),
+                ConfigFields.CUSTOM_BENCHMARK_PARAMS: config.get(ConfigFields.CUSTOM_BENCHMARK_PARAMS),
+                ConfigFields.S3_BUCKET: config.get(ConfigFields.S3_BUCKET)
+            }
+            
+            benchmark_result = run_benchmark_process(
+                benchmark_config,
+                workflow_timestamp
+            )
         
         if benchmark_result.get(ResultFields.STATUS) == Status.SUCCESS:
             auto_logger.info(f"✅ Benchmark completed successfully for job {job_id}")
@@ -204,7 +261,7 @@ def run_workflow_background(job_id: str, config: dict, tasks: dict):
         
         # Execute benchmark task if requested
         if tasks.get(TaskTypes.BENCHMARK):
-            benchmark_result = execute_benchmark_task(job_id, config, workflow_timestamp)
+            benchmark_result = execute_benchmark_task(job_id, config, workflow_timestamp, deploy_result)
         
         # If all tasks completed successfully, update the job status
         job_tracker.update_job_status(job_id, JobStatus.COMPLETED)
@@ -298,6 +355,14 @@ async def execute_workflow(
         ConfigFields.WORKLOAD_TYPE: config.workload_type,
         ConfigFields.PIPELINE: config.pipeline,
         ConfigFields.CUSTOM_BENCHMARK_PARAMS: config.custom_benchmark_params,
+        
+        # EC2 Benchmark config
+        ConfigFields.USE_EC2_BENCHMARK: config.use_ec2_benchmark,
+        ConfigFields.INSTANCE_TYPE: config.instance_type,
+        ConfigFields.KEY_NAME: config.key_name,
+        ConfigFields.SUBNET_ID: config.subnet_id,
+        ConfigFields.MY_IP: config.my_ip,
+        ConfigFields.TIMEOUT_MINUTES: config.timeout_minutes,
         
         # S3 Configuration
         ConfigFields.S3_BUCKET: config.s3_bucket

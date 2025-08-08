@@ -8,11 +8,11 @@ import logging
 import shutil
 import json
 from typing import Dict, Any
-import boto3
 from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
 from datetime import datetime
 from scripts.s3_upload import S3Uploader
 from constants import Status, ResultFields, TaskTypes, ConfigFields, ErrorMessages
+from scripts.aws_credentials_manager import AWSCredentialsManager
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -26,37 +26,14 @@ class OpenSearchDeployer:
         self.workflow_timestamp = workflow_timestamp
         self.config = config or {}
 
-        self.validate_aws_credentials()
+        # Use shared AWS credentials manager to validate credentials
+        self.aws = AWSCredentialsManager()
+        self.aws.validate_aws_credentials()
 
-        # Initialize AWS session
-        self.session = boto3.Session()
-        self.region = self.session.region_name or 'us-east-1'
+        # Initialize AWS session/region from manager
+        self.session = self.aws.get_session()
+        self.region = self.aws.get_region()
 
-    def validate_aws_credentials(self):
-        """Validate that AWS credentials are available from default locations."""
-        try:
-            session = boto3.Session()
-            credentials = session.get_credentials()
-            if credentials is None:
-                raise NoCredentialsError("No AWS credentials found")
-            
-            # Test credentials by making a simple call
-            sts = session.client('sts')
-            identity = sts.get_caller_identity()
-            account_id = identity.get('Account', 'unknown')
-            user_arn = identity.get('Arn', 'unknown')
-            
-            logger.info(f"✅ AWS credentials validated successfully")
-            logger.info(f"   Account: {account_id}")
-            logger.info(f"   Identity: {user_arn}")
-            
-        except (NoCredentialsError, PartialCredentialsError, ClientError) as e:
-            logger.error(f"❌ AWS credentials validation failed: {e}")
-            raise Exception(
-                "AWS credentials not found or invalid. Please run 'aws configure' to set up your credentials.\n"
-                "Make sure you have ~/.aws/credentials and ~/.aws/config files properly configured."
-            )
-    
     # create the CDK context file
     def create_cdk_context(self, config: Dict[str, Any]) -> str:
         """Create CDK context file with deployment configuration."""
@@ -407,9 +384,9 @@ class OpenSearchDeployer:
             if result.returncode != 0:
                 logger.error(f"❌ CDK deploy failed with return code: {result.returncode}")
                 return {
-                    "status": "error",
-                    "message": f"CDK deploy failed with return code: {result.returncode}",
-                    "output": result.stdout,
+                    ResultFields.STATUS: Status.ERROR,
+                    ResultFields.MESSAGE: f"CDK deploy failed with return code: {result.returncode}",
+                    ResultFields.OUTPUT: result.stdout,
                     "error_output": result.stderr,
                     "full_output": f"STDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}"
                 }
@@ -476,7 +453,8 @@ class OpenSearchDeployer:
             "cluster_endpoint": None,
             "stack_name": None,
             "deployment_time": None,
-            "total_time": None
+            "total_time": None,
+            "security_group_id": None
         }
         
         logger.info(f"🔍 Parsing CDK output for suffix: {suffix}")
@@ -520,6 +498,26 @@ class OpenSearchDeployer:
                 if len(time_part) == 2:
                     cluster_info["total_time"] = time_part[1].strip()
                     logger.info(f"⏱️ Total time: {cluster_info['total_time']}")
+            
+            # Look for security group ID in network stack exports
+            elif "ExportsOutputFnGetAttosSecurityGroupAB2F5DAAGroupId" in line and "=" in line:
+                logger.info(f"Found security group line: '{line}'")
+                parts = line.split("=", 1)
+                if len(parts) == 2:
+                    security_group_id = parts[1].strip()
+                    if security_group_id.startswith("sg-"):
+                        cluster_info["security_group_id"] = security_group_id
+                        logger.info(f"✅ Extracted security group ID: {cluster_info['security_group_id']}")
+            
+            # Look for other security group patterns
+            elif "securitygroup" in line.lower() and "=" in line and "sg-" in line:
+                logger.info(f"Found security group pattern: '{line}'")
+                parts = line.split("=", 1)
+                if len(parts) == 2:
+                    security_group_id = parts[1].strip()
+                    if security_group_id.startswith("sg-"):
+                        cluster_info["security_group_id"] = security_group_id
+                        logger.info(f"✅ Extracted security group ID: {cluster_info['security_group_id']}")
         
         logger.info(f"📋 Final parsed cluster info: {cluster_info}")
         return cluster_info
