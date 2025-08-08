@@ -5,7 +5,7 @@ import boto3
 import json
 import logging
 from typing import Dict, Any
-from constants import Status, ResultFields, ConfigFields, AWSConfig
+from constants import Status, ResultFields, ConfigFields
 
 # used to log info to terminal
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +18,7 @@ class S3ResultsManager:
     def __init__(self, session: boto3.Session):
         self.session = session
         self.s3_client = session.client('s3')
-        self.region = session.region_name or AWSConfig.DEFAULT_REGION
+        self.region = session.region_name or 'us-east-1'
     
     # download and process the S3 results
     def download_and_process_s3_results(self, config: Dict[str, Any], workflow_timestamp: str) -> Dict[str, Any]:

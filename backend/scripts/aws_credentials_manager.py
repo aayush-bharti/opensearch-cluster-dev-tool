@@ -7,7 +7,6 @@ import subprocess
 import time
 from typing import Dict
 from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
-from constants import AWSConfig
 
 # used to log info to terminal
 logging.basicConfig(level=logging.INFO)
@@ -19,11 +18,7 @@ class AWSCredentialsManager:
     
     def __init__(self):
         self.session = boto3.Session()
-        self.region = self.session.region_name or AWSConfig.DEFAULT_REGION
-        
-        # Add logging for when default region is used
-        if not self.session.region_name:
-            logger.info(f"No user AWS region provided, using default region: {AWSConfig.DEFAULT_REGION}")
+        self.region = self.session.region_name or 'us-east-1'
     
     # validate the AWS credentials
     def validate_aws_credentials(self):
@@ -112,7 +107,7 @@ class AWSCredentialsManager:
                 creds_dict = {
                     'access_key': credentials.access_key,
                     'secret_key': credentials.secret_key,
-                    'region': session.region_name or AWSConfig.DEFAULT_REGION
+                    'region': session.region_name or 'us-east-1'
                 }
                 
                 # Add token if it's a temporary credential
