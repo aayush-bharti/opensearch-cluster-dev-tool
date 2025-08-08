@@ -5,12 +5,12 @@ import subprocess
 import os
 import logging
 import re
-import boto3
 from datetime import datetime
 from typing import Dict, Any
 from scripts.s3_upload import S3Uploader
 from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
 from constants import Status, ResultFields, TaskTypes, ConfigFields, ErrorMessages
+from scripts.aws_credentials_manager import AWSCredentialsManager
 
 # used to log info to terminal
 logging.basicConfig(level=logging.INFO)
@@ -24,36 +24,13 @@ class OpenSearchBenchmarker:
         self.workflow_timestamp = workflow_timestamp
         self.benchmark_id = f"benchmark_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
-        # Validate AWS credentials and get region
-        self.validate_aws_credentials()
-        self.session = boto3.Session()
-        self.region = self.session.region_name or 'us-east-1'
+        # Use shared AWS credentials manager to validate credentials
+        self.aws = AWSCredentialsManager()
+        self.aws.validate_aws_credentials()
 
-    # validate aws credentials
-    def validate_aws_credentials(self):
-        """Validate that AWS credentials are available from default locations."""
-        try:
-            session = boto3.Session()
-            credentials = session.get_credentials()
-            if credentials is None:
-                raise NoCredentialsError("No AWS credentials found")
-            
-            # Test credentials by making a simple call
-            sts = session.client('sts')
-            identity = sts.get_caller_identity()
-            account_id = identity.get('Account', 'unknown')
-            user_arn = identity.get('Arn', 'unknown')
-            
-            logger.info(f"✅ AWS credentials validated successfully")
-            logger.info(f"   Account: {account_id}")
-            logger.info(f"   Identity: {user_arn}")
-            
-        except (NoCredentialsError, PartialCredentialsError, ClientError) as e:
-            logger.error(f"❌ AWS credentials validation failed: {e}")
-            raise Exception(
-                "AWS credentials not found or invalid. Please run 'aws configure' to set up your credentials.\n"
-                "Make sure you have ~/.aws/credentials and ~/.aws/config files properly configured."
-            )
+        # Initialize AWS session/region from manager
+        self.session = self.aws.get_session()
+        self.region = self.aws.get_region()
 
     # make sure opensearch benchmark is installed, if not install it
     def setup_opensearch_benchmark(self):
@@ -327,16 +304,19 @@ class OpenSearchBenchmarker:
                 "benchmark_message": benchmark_result.get(ResultFields.MESSAGE),
                 "benchmark_id": benchmark_result.get(ResultFields.BENCHMARK_ID),
                 "results_location": benchmark_result.get(ResultFields.RESULTS_LOCATION),
-                "config": self.config
+                "config": {
+                    **self.config,
+                    "use_ec2_benchmark": False
+                }
             }
             
             # Use the new upload method with timing data
             result = uploader.upload_task_results(TaskTypes.BENCHMARK, benchmark_metadata, timing_data)
             
             return {
-                "results_s3_uri": result["s3_uri"],
-                "results_https_url": result["https_url"],
-                "results_s3_key": result["s3_key"]
+                "results_s3_uri": result[ResultFields.S3_URI],
+                "results_https_url": result[ResultFields.HTTPS_URL],
+                "results_s3_key": result[ResultFields.S3_KEY]
             }
             
         except Exception as e:

@@ -21,6 +21,14 @@ class ResultFields:
     MESSAGE = "message"
     S3_INFO = "s3_info"
     S3_URI = "s3_uri"
+    HTTPS_URL = "https_url"
+    BUCKET_NAME = "bucket_name"
+    S3_KEY = "s3_key"
+    FILE_SIZE = "file_size"
+    TIMESTAMP = "timestamp"
+    UPLOAD_DATE = "upload_date"
+    TASK_TYPE = "task_type"
+    REGION = "region"
     CLUSTER_INFO = "cluster_info"
     CLUSTER_ENDPOINT = "cluster_endpoint"
     BENCHMARK_ID = "benchmark_id"
@@ -51,6 +59,14 @@ class ConfigFields:
     CLUSTER_ENDPOINT = "cluster_endpoint"
     WORKLOAD_TYPE = "workload_type"
     PIPELINE = "pipeline"
+    
+    # EC2 Benchmark config
+    USE_EC2_BENCHMARK = "use_ec2_benchmark"
+    INSTANCE_TYPE = "instance_type"
+    KEY_NAME = "key_name"
+    SUBNET_ID = "subnet_id"
+    MY_IP = "my_ip"
+    TIMEOUT_MINUTES = "timeout_minutes"
     
     # S3 Configuration
     S3_BUCKET = "s3_bucket"    
