@@ -29,9 +29,15 @@ This project provides a full-stack application for automating OpenSearch build, 
 │   ├── routers/
 │   │   └── api_endpoints.py                 # Main workflow API endpoints
 │   ├── scripts/
+│   │   ├── aws_credentials_manager.py       # 
 │   │   ├── build.py                         # OpenSearch build
 │   │   ├── deploy.py                        # AWS CDK deployment scripts
 │   │   ├── benchmark.py                     # OpenSearch Benchmark execution
+│   │   ├── ec2_benchmark_executor.py        # OpenSearch Benchmark execution on EC2
+│   │   ├── ec2_benchmark_orchestrator.py    # Orchestrates the EC2 benchmark process
+│   │   ├── ec2_instance_manager.py          # Handles EC2 instances
+│   │   ├── security_group_manager.py        # Handles Security Group
+│   │   ├── s3_results_manager_ec2.py        # Handles S3 upload in EC2
 │   │   └── s3_upload.py                     # S3 upload utilities
 │   ├── job_data/                            # Job execution data storage
 │   ├── requirements.txt                     # Python dependencies
