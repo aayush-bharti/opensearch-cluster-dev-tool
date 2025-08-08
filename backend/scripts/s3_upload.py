@@ -109,11 +109,11 @@ class S3Uploader:
             
             return {
                 ResultFields.S3_URI: s3_uri,
-                "https_url": https_url,
-                "bucket_name": self.bucket_name,
-                "s3_key": s3_key,
-                "file_size": file_size,
-                "timestamp": self.workflow_timestamp
+                ResultFields.HTTPS_URL: https_url,
+                ResultFields.BUCKET_NAME: self.bucket_name,
+                ResultFields.S3_KEY: s3_key,
+                ResultFields.FILE_SIZE: file_size,
+                ResultFields.TIMESTAMP: self.workflow_timestamp
             }
             
         except Exception as e:
@@ -151,11 +151,11 @@ class S3Uploader:
             
             return {
                 ResultFields.S3_URI: s3_uri,
-                "https_url": https_url,
-                "bucket_name": self.bucket_name,
-                "s3_key": s3_key,
-                "file_size": file_size,
-                "timestamp": self.workflow_timestamp
+                ResultFields.HTTPS_URL: https_url,
+                ResultFields.BUCKET_NAME: self.bucket_name,
+                ResultFields.S3_KEY: s3_key,
+                ResultFields.FILE_SIZE: file_size,
+                ResultFields.TIMESTAMP: self.workflow_timestamp
             }
             
         except Exception as e:
@@ -194,9 +194,9 @@ class S3Uploader:
         
         # Add metadata to results
         results_data.update({
-            "upload_date": datetime.now().strftime("%m/%d/%y, %H:%M:%S"),
-            "task_type": task_type,
-            "region": self.region
+            ResultFields.UPLOAD_DATE: datetime.now().strftime("%m/%d/%y, %H:%M:%S"),
+            ResultFields.TASK_TYPE: task_type,
+            ResultFields.REGION: self.region
         })
         
         # Add timing information if provided
