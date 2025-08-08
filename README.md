@@ -1,4 +1,4 @@
-# OpenSearch Cluster Dev Tool Platform
+# OpenSearch Cluster Dev Tool
 
 This project provides a full-stack application for automating OpenSearch build, deployment, and benchmarking processes. Previously, these processes were completely manual and extremely time-consuming with different repositories and libraries needed for each step. This project creates a centralized web application to run these processes where the user only needs to input the configuration for each step and launch the job.
 
@@ -25,6 +25,7 @@ This project provides a full-stack application for automating OpenSearch build, 
 ├── backend/
 │   ├── main.py                              # FastAPI application entry point
 │   ├── job_tracker.py                       # Job status and progress tracking
+│   ├── constants.py                         # Constant values for other files
 │   ├── routers/
 │   │   └── api_endpoints.py                 # Main workflow API endpoints
 │   ├── scripts/
@@ -33,16 +34,24 @@ This project provides a full-stack application for automating OpenSearch build, 
 │   │   ├── benchmark.py                     # OpenSearch Benchmark execution
 │   │   └── s3_upload.py                     # S3 upload utilities
 │   ├── job_data/                            # Job execution data storage
-│   └── requirements.txt                     # Python dependencies
+│   ├── requirements.txt                     # Python dependencies
+│   └── Dockerfile                           # Dockerfile for backend
 ├── frontend/
+│   ├── public/
+│   │   ├── index.html
+│   │   ├── manifest.json
+│   │   └── robots.txt
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── configurations/
 │   │   │   │   ├── BenchmarkConfiguration.js
 │   │   │   │   ├── BuildConfiguration.js
-│   │   │   │   └── DeployConfiguration.js
+│   │   │   │   ├── DeployConfiguration.js
+│   │   │   │   ├── CustomParameters.js
+│   │   │   │   └── S3Configuration.js
 │   │   │   ├── BenchmarkResultsTable.js     # Benchmark results display
 │   │   │   ├── JobConfiguration.js          # Job setup interface
+│   │   │   ├── JobConfigurationModal.js     # View Config display
 │   │   │   ├── JobHeader.js                 # Job information header
 │   │   │   ├── JobProgress.js               # Progress indicators
 │   │   │   ├── JobResults.js                # Results display component
@@ -59,6 +68,7 @@ This project provides a full-stack application for automating OpenSearch build, 
 │   │   ├── App.css                          # Application styles
 │   │   ├── index.js                         # React entry point
 │   │   └── index.css                        # Global styles
+│   ├── Dockerfile                           # Dockerfile for frontend
 │   └── package.json                         # Node.js dependencies
 ├── docker-compose.yml                       # Docker container orchestration
 ├── requirements.txt                         # Python dependencies
@@ -74,9 +84,9 @@ This project provides a full-stack application for automating OpenSearch build, 
    cd opensearch-cluster-dev-tool
    ```
 
-2. Set up the backend:
+2. Set up the backend (Python 3.9+ needed):
    ```bash
-   python -m venv venv
+   python3.9 -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
    ```
