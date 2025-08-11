@@ -109,8 +109,6 @@ This project provides a full-stack application for automating OpenSearch build, 
 1. Start the backend server:
    ```bash
    cd backend
-   uvicorn main:app --reload
-   OR
    python3.9 main.py
    ```
 
