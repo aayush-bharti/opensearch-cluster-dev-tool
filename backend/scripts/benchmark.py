@@ -217,15 +217,16 @@ class OpenSearchBenchmarker:
             # Create benchmark result first
             benchmark_result = {
                 ResultFields.STATUS: Status.SUCCESS,
-                "benchmark_id": self.benchmark_id,
-                "results_location": f"local://benchmark_results/{self.benchmark_id}",
-                "output": benchmark_output,
-                "stdout": stdout,
-                "stderr": stderr,
-                "command": " ".join(benchmark_cmd),
-                "task_started_at": task_started_at,
-                "task_completed_at": task_completed_at,
-                "results_file_content": results_file_content
+                ResultFields.BENCHMARK_ID: self.benchmark_id,
+                # ResultFields.RESULTS_LOCATION: f"local://benchmark_results/{self.benchmark_id}",
+                ResultFields.RESULTS_LOCATION: f"s3://{self.config.get(ConfigFields.S3_BUCKET, '')}/{self.workflow_timestamp}/benchmark/benchmark-results.json",
+                ResultFields.OUTPUT: benchmark_output,
+                ResultFields.STDOUT: stdout,
+                ResultFields.STDERR: stderr,
+                ResultFields.COMMAND: " ".join(benchmark_cmd),
+                ResultFields.TASK_STARTED_AT: task_started_at,
+                ResultFields.TASK_COMPLETED_AT: task_completed_at,
+                ResultFields.RESULTS_FILE_CONTENT: results_file_content
             }
             
             # Upload results file to S3
@@ -300,11 +301,11 @@ class OpenSearchBenchmarker:
             
             # Create benchmark results metadata
             benchmark_metadata = {
-                "benchmark_status": benchmark_result.get(ResultFields.STATUS),
-                "benchmark_message": benchmark_result.get(ResultFields.MESSAGE),
-                "benchmark_id": benchmark_result.get(ResultFields.BENCHMARK_ID),
-                "results_location": benchmark_result.get(ResultFields.RESULTS_LOCATION),
-                "config": {
+                ResultFields.BENCHMARK_STATUS: benchmark_result.get(ResultFields.STATUS),
+                ResultFields.BENCHMARK_MESSAGE: benchmark_result.get(ResultFields.MESSAGE),
+                ResultFields.BENCHMARK_ID: benchmark_result.get(ResultFields.BENCHMARK_ID),
+                ResultFields.RESULTS_LOCATION: benchmark_result.get(ResultFields.RESULTS_LOCATION),
+                ResultFields.CONFIG: {
                     **self.config,
                     "use_ec2_benchmark": False
                 }
@@ -349,13 +350,13 @@ class OpenSearchBenchmarker:
         # Return simple, clean format with timing information
         formatted_results = {
             "benchmark_metadata": {
-                "benchmark_id": self.benchmark_id,
-                "workload_type": self.config.get(ConfigFields.WORKLOAD_TYPE),
-                "cluster_endpoint": self.config.get(ConfigFields.CLUSTER_ENDPOINT),
-                "execution_info": execution_info,
-                "content_length": len(raw_content),
-                "task_started_at": getattr(self, 'task_started_at', None),
-                "task_completed_at": getattr(self, 'task_completed_at', None)
+                ResultFields.BENCHMARK_ID: self.benchmark_id,
+                ConfigFields.WORKLOAD_TYPE: self.config.get(ConfigFields.WORKLOAD_TYPE),
+                ConfigFields.CLUSTER_ENDPOINT: self.config.get(ConfigFields.CLUSTER_ENDPOINT),
+                ResultFields.EXECUTION_INFO: execution_info,
+                ResultFields.CONTENT_LENGTH: len(raw_content),
+                ResultFields.TASK_STARTED_AT: getattr(self, 'task_started_at', None),
+                ResultFields.TASK_COMPLETED_AT: getattr(self, 'task_completed_at', None)
             },
         }
         

@@ -7,6 +7,7 @@ import time
 from typing import Dict, Any, Optional
 from datetime import datetime
 from botocore.exceptions import ClientError
+from constants import ResultFields
 
 # used to log info to terminal
 logging.basicConfig(level=logging.INFO)
@@ -202,12 +203,12 @@ class EC2InstanceManager:
             logger.info(f"   Private IP: {private_ip}")
             
             return {
-                "instance_id": self.instance_id,
-                "public_ip": public_ip,
-                "private_ip": private_ip,
-                "security_group_id": security_group_id,
-                "vpc_id": vpc_id,
-                "subnet_id": subnet_id
+                ResultFields.INSTANCE_ID: self.instance_id,
+                ResultFields.PUBLIC_IP: public_ip,
+                ResultFields.PRIVATE_IP: private_ip,
+                ResultFields.SECURITY_GROUP_ID: security_group_id,
+                ResultFields.VPC_ID: vpc_id,
+                ResultFields.SUBNET_ID: subnet_id
             }
             
         except Exception as e:

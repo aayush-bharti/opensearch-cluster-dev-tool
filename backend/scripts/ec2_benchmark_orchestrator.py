@@ -133,14 +133,14 @@ class EC2WorkflowOrchestrator:
             # Create result
             result = {
                 ResultFields.STATUS: Status.SUCCESS if benchmark_success else Status.FAILED,
-                "benchmark_id": self.benchmark_id,
-                "instance_id": self.instance_manager.get_instance_id(),
-                "instance_info": instance_info,
-                "cluster_security_group": cluster_sg,
-                "benchmark_success": benchmark_success,
-                "task_started_at": task_started_at,
-                "task_completed_at": task_completed_at,
-                "message": "EC2 benchmark workflow completed successfully" if benchmark_success else "EC2 benchmark workflow failed"
+                ResultFields.BENCHMARK_ID: self.benchmark_id,
+                ResultFields.INSTANCE_ID: self.instance_manager.get_instance_id(),
+                ResultFields.INSTANCE_INFO: instance_info,
+                ResultFields.CLUSTER_SECURITY_GROUP: cluster_sg,
+                ResultFields.BENCHMARK_SUCCESS: benchmark_success,
+                ResultFields.TASK_STARTED_AT: task_started_at,
+                ResultFields.TASK_COMPLETED_AT: task_completed_at,
+                ResultFields.MESSAGE: "EC2 benchmark workflow completed successfully" if benchmark_success else "EC2 benchmark workflow failed"
             }
             
             # If benchmark was successful and we have S3 results, merge them into the main result

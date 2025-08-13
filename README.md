@@ -92,14 +92,16 @@ This project provides a full-stack application for automating OpenSearch build, 
 
 2. Set up the backend (Python 3.9+ needed):
    ```bash
+   cd backend
    python3.9 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   source venv/bin/activate
    pip install -r requirements.txt
    ```
 
 3. Set up the frontend:
    ```bash
    cd frontend
+   rm -rf node_modules yarn.lock
    npm install -g yarn
    yarn install
    ```
