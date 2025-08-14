@@ -7,11 +7,11 @@ import tempfile
 import logging
 import shutil
 from typing import Dict, Any
-import boto3
 from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
 from datetime import datetime
 from scripts.s3_upload import S3Uploader
 from constants import Status, ResultFields, TaskTypes, ConfigFields, ErrorMessages
+from scripts.aws_credentials_manager import AWSCredentialsManager
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -27,37 +27,14 @@ class OpenSearchBuilder:
         self.temp_dir = tempfile.mkdtemp()
         self.manifest_path = os.path.join(self.temp_dir, "manifest.yml")
         
-        # Validate AWS credentials are available
-        self.validate_aws_credentials()
+        # Use shared AWS credentials manager to validate credentials
+        self.aws = AWSCredentialsManager()
+        self.aws.validate_aws_credentials()
         
-        # Initialize AWS session
-        self.session = boto3.Session()
-        self.region = self.session.region_name or 'us-east-1'
+        # Initialize AWS session/region from manager
+        self.session = self.aws.get_session()
+        self.region = self.aws.get_region()
         
-    def validate_aws_credentials(self):
-        """Validate that AWS credentials are available from default locations."""
-        try:
-            session = boto3.Session()
-            credentials = session.get_credentials()
-            if credentials is None:
-                raise NoCredentialsError("No AWS credentials found")
-            
-            # Test credentials by making a simple call
-            sts = session.client('sts')
-            identity = sts.get_caller_identity()
-            account_id = identity.get('Account', 'unknown')
-            user_arn = identity.get('Arn', 'unknown')
-            
-            logger.info(f"✅ AWS credentials validated successfully")
-            logger.info(f"   Account: {account_id}")
-            logger.info(f"   Identity: {user_arn}")
-            
-        except (NoCredentialsError, PartialCredentialsError, ClientError) as e:
-            logger.error(f"❌ AWS credentials validation failed: {e}")
-            raise Exception(
-                "AWS credentials not found or invalid. Please run 'aws configure' to set up your credentials.\n"
-                "Make sure you have ~/.aws/credentials and ~/.aws/config files properly configured."
-            )
     
     # run the build process
     def run_build(self) -> Dict[str, Any]:
