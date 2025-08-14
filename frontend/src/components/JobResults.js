@@ -322,7 +322,7 @@ const JobResults = ({ jobStatus, jobId }) => {
             <EuiAccordion
               id={`benchmark-results-file-${jobId}`}
               buttonContent={
-                <EuiText size="m">View Benchmark Results File</EuiText>
+                <EuiText size="m">View Benchmark Results Table</EuiText>
               }
               paddingSize="s"
             >

@@ -28,10 +28,7 @@ const BuildConfiguration = ({ config, onChange, selectedTasks }) => {
         }}
       >
         <EuiIcon type="package" color="primary" />
-        <EuiTitle
-          size="l"
-          style={{ color: "#2c3e50", fontSize: "1.75rem", fontWeight: "bold" }}
-        >
+        <EuiTitle size="l" style={{ fontSize: "1.75rem", fontWeight: "bold" }}>
           <h3>Build Configuration</h3>
         </EuiTitle>
       </EuiFlexGroup>
