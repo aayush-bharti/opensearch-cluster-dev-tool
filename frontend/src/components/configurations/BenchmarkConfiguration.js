@@ -108,7 +108,8 @@ const BenchmarkConfiguration = ({ config, onChange, selectedTasks }) => {
       <EuiSpacer size="l" />
 
       {/* EC2 Benchmark Configuration: show when deploy is selected with benchmark */}
-      {selectedTasks.deploy && selectedTasks.benchmark && (
+      {/* {selectedTasks.deploy && selectedTasks.benchmark && ( */}
+      {selectedTasks.benchmark && (
         <>
           <EuiTitle size="m">
             <h4>EC2 Benchmark Configuration (Optional)</h4>
@@ -206,6 +207,19 @@ const BenchmarkConfiguration = ({ config, onChange, selectedTasks }) => {
               </EuiFormRow>
             </EuiFlexItem>
           </EuiFlexGroup>
+
+          <EuiSpacer size="m" />
+
+          {!selectedTasks.deploy && (
+            <EuiFormRow label="Security Group ID" fullWidth>
+              <EuiFieldText
+                fullWidth
+                value={config.security_group_id || ""}
+                onChange={onChange("security_group_id")}
+                placeholder="Enter security group ID..."
+              />
+            </EuiFormRow>
+          )}
 
           <EuiSpacer size="m" />
 

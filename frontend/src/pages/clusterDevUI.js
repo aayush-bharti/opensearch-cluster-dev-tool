@@ -252,12 +252,13 @@ export default function ClusterDevUI() {
           pipeline: config.pipeline,
           custom_benchmark_params: config.custom_benchmark_params,
 
-          // EC2 Benchmark config - only include when deploy is selected
-          ...(selectedTasks.deploy && {
+          // EC2 Benchmark config - include when benchmark is selected
+          ...(selectedTasks.benchmark && {
             use_ec2_benchmark: config.use_ec2_benchmark || false,
             instance_type: config.instance_type || "t4g.medium",
             key_name: config.key_name || "",
             ...(config.subnet_id && { subnet_id: config.subnet_id }),
+            ...(config.security_group_id && { security_group_id: config.security_group_id }),
             timeout_minutes: config.timeout_minutes || 60,
           }),
         }),
@@ -272,6 +273,7 @@ export default function ClusterDevUI() {
         use_ec2_benchmark: config.use_ec2_benchmark,
         key_name: config.key_name,
         subnet_id: config.subnet_id,
+        security_group_id: config.security_group_id,
       });
 
       // Single workflow API call to start the job

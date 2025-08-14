@@ -117,6 +117,7 @@ class ConfigFields:
     SUBNET_ID = "subnet_id"
     MY_IP = "my_ip"
     TIMEOUT_MINUTES = "timeout_minutes"
+    SECURITY_GROUP_ID = "security_group_id"
     
     # S3 Configuration
     S3_BUCKET = "s3_bucket"    

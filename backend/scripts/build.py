@@ -72,7 +72,7 @@ class OpenSearchBuilder:
                 "-v", f"{os.path.abspath('opensearch-build')}:/opensearch-build",
                 "-v", f"{os.path.abspath(self.manifest_path)}:/opensearch-build/manifest.yml",
                 "-w", "/opensearch-build",
-                "-e", "JAVA_HOME=/opt/java/openjdk-21",
+                "-e", "JAVA_HOME=/opt/java/openjdk-24",
                 docker_image,
                 "./build.sh", "/opensearch-build/manifest.yml",
                 "-p", "linux",
@@ -126,7 +126,7 @@ class OpenSearchBuilder:
                 "docker", "run", "--name", container_name,
                 "-v", f"{os.path.abspath('opensearch-build')}:/opensearch-build",
                 "-w", "/opensearch-build",
-                "-e", "JAVA_HOME=/opt/java/openjdk-21",
+                "-e", "JAVA_HOME=/opt/java/openjdk-24",
                 docker_image,
                 "./assemble.sh", build_manifest_path
             ]

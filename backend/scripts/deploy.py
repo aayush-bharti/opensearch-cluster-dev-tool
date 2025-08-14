@@ -313,12 +313,8 @@ class OpenSearchDeployer:
                 # Check if the parameter is already in the command
                 if not any(param_value in arg for arg in cmd):
                     # Add the parameter to the command
-                    if not param_value.startswith("-c"):
-                        cmd.extend(["-c", param_value])
-                        logger.info(f"📝 Added parameter: {param_value}")
-                    else:
-                        cmd.append(param_value)
-                        logger.info(f"📝 Added parameter: {param_value}")
+                    cmd.append(param_value)
+                    logger.info(f"📝 Added parameter: {param_value}")
                 else:
                     logger.info(f"📝 Parameter already in command: {param_value}")
         
@@ -468,10 +464,10 @@ class OpenSearchDeployer:
             logger.info("🚀 Running CDK deploy...")
             
             deploy_cmd = [
-                "cdk", "deploy", "*",
-                "--require-approval", "never",
-                "--verbose",
-                "--rollback", "false"
+                "cdk", "deploy", "'*'",
+                # "--require-approval", "never",
+                # "--verbose",
+                # "--rollback", "false"
             ] + context_args
 
             # Add custom deploy parameters if provided

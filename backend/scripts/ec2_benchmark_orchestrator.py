@@ -53,11 +53,19 @@ class EC2WorkflowOrchestrator:
             logger.info(f"📅 Task started at: {task_started_at}")
             
             # Extract cluster security group
-            cluster_sg = self.security_group_manager.extract_cluster_security_group(
-                self.config["cluster_endpoint"], deploy_result
-            )
-            if not cluster_sg:
-                logger.warning("⚠️ Could not extract cluster security group - EC2 may not be able to access cluster")
+            if self.config.get("security_group_id"):
+                # Use manually provided cluster security group ID
+                cluster_sg = self.config["security_group_id"]
+                logger.info(f"🔒 Using manually specified cluster security group: {cluster_sg}")
+            else:
+                # Try to extract cluster security group automatically
+                cluster_sg = self.security_group_manager.extract_cluster_security_group(
+                    self.config["cluster_endpoint"], deploy_result
+                )
+                if cluster_sg:
+                    logger.info(f"🔒 Automatically extracted cluster security group: {cluster_sg}")
+                else:
+                    logger.warning("⚠️ Could not extract cluster security group - EC2 may not be able to access cluster")
             
             # Get AWS credentials for user data script
             aws_creds = self.aws_credentials_manager.get_current_aws_credentials()
@@ -96,6 +104,8 @@ class EC2WorkflowOrchestrator:
             
             # Add EC2 instance to cluster security group
             if cluster_sg:
+                # Set the cluster security group ID in the security group manager
+                self.security_group_manager.cluster_security_group_id = cluster_sg
                 self.security_group_manager.add_ec2_to_cluster_security_group(
                     self.instance_manager.get_instance_id()
                 )

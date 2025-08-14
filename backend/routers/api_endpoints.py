@@ -54,6 +54,7 @@ class WorkflowConfig(BaseModel):
     subnet_id: Optional[str] = None
     my_ip: Optional[str] = None
     timeout_minutes: Optional[int] = 60
+    security_group_id: Optional[str] = None
     
     # S3 Configuration
     s3_bucket: str = None
@@ -177,13 +178,24 @@ def execute_benchmark_task(job_id: str, config: dict, workflow_timestamp: str, d
                 "key_name": config.get(ConfigFields.KEY_NAME),
                 "subnet_id": config.get(ConfigFields.SUBNET_ID),
                 "my_ip": config.get(ConfigFields.MY_IP),
-                "timeout_minutes": config.get(ConfigFields.TIMEOUT_MINUTES, 60)
+                "timeout_minutes": config.get(ConfigFields.TIMEOUT_MINUTES, 60),
+                "security_group_id": config.get(ConfigFields.SECURITY_GROUP_ID)
             }
             
             # validate required EC2 parameters
             if not ec2_benchmark_config["key_name"]:
                 raise Exception("key_name is required for EC2 benchmark")
             
+            # validate security group ID format if provided
+            if ec2_benchmark_config["security_group_id"] and not ec2_benchmark_config["security_group_id"].startswith("sg-"):
+                raise Exception("security_group_id must start with 'sg-' (e.g., sg-12345678)")
+            
+            # Log security group configuration
+            if ec2_benchmark_config["security_group_id"]:
+                auto_logger.info(f"🔒 Using custom cluster security group: {ec2_benchmark_config['security_group_id']}")
+            else:
+                auto_logger.info("🔒 Will attempt to automatically detect cluster security group")
+
             benchmark_result = run_ec2_benchmark_workflow(
                 ec2_benchmark_config,
                 workflow_timestamp,
@@ -363,6 +375,7 @@ async def execute_workflow(
         ConfigFields.SUBNET_ID: config.subnet_id,
         ConfigFields.MY_IP: config.my_ip,
         ConfigFields.TIMEOUT_MINUTES: config.timeout_minutes,
+        ConfigFields.SECURITY_GROUP_ID: config.security_group_id,
         
         # S3 Configuration
         ConfigFields.S3_BUCKET: config.s3_bucket
