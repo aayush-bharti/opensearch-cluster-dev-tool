@@ -141,31 +141,15 @@ const BenchmarkConfiguration = ({ config, onChange, selectedTasks }) => {
               <EuiFormRow label="Instance Type" fullWidth>
                 <EuiSelect
                   fullWidth
-                  value={config.instance_type || "t3.medium"}
+                  value={config.instance_type || "t4g.medium"}
                   onChange={onChange("instance_type")}
                   options={[
-                    { value: "t3.medium", text: "t3.medium (x86)" },
-                    { value: "t3.large", text: "t3.large (x86)" },
-                    { value: "t3.xlarge", text: "t3.xlarge (x86)" },
                     { value: "t4g.medium", text: "t4g.medium (ARM)" },
-                    { value: "t4g.large", text: "t4g.large (ARM)" },
                     { value: "t4g.xlarge", text: "t4g.xlarge (ARM)" },
-                    { value: "c5.large", text: "c5.large (x86)" },
-                    { value: "c5.xlarge", text: "c5.xlarge (x86)" },
-                    { value: "c6g.large", text: "c6g.large (ARM)" },
-                    { value: "c6g.xlarge", text: "c6g.xlarge (ARM)" },
-                    { value: "c7g.large", text: "c7g.large (ARM)" },
                     { value: "c7g.xlarge", text: "c7g.xlarge (ARM)" },
-                    { value: "m5.large", text: "m5.large (x86)" },
-                    { value: "m5.xlarge", text: "m5.xlarge (x86)" },
-                    { value: "m6g.large", text: "m6g.large (ARM)" },
-                    { value: "m6g.xlarge", text: "m6g.xlarge (ARM)" },
-                    { value: "m7g.large", text: "m7g.large (ARM)" },
                     { value: "m7g.xlarge", text: "m7g.xlarge (ARM)" },
-                    { value: "r6g.large", text: "r6g.large (ARM)" },
-                    { value: "r6g.xlarge", text: "r6g.xlarge (ARM)" },
-                    { value: "r7g.large", text: "r7g.large (ARM)" },
-                    { value: "r7g.xlarge", text: "r7g.xlarge (ARM)" },
+                    { value: "c5.2xlarge", text: "c5.2xlarge (x86)" },
+                    { value: "m5.xlarge", text: "m5.xlarge (x86)" },
                   ]}
                 />
               </EuiFormRow>
