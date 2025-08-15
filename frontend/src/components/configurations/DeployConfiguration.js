@@ -304,7 +304,7 @@ const DeployConfiguration = ({ config, onChange, selectedTasks }) => {
         onChange={(params) =>
           onChange("custom_deploy_params")({ target: { value: params } })
         }
-        placeholder="Enter deploy parameter (e.g., --profile production, --region us-west-2)"
+        placeholder="Enter deploy parameter (e.g., -c --region us-west-2, --verbose)"
       />
     </EuiPanel>
   );

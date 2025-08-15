@@ -207,24 +207,93 @@ class OpenSearchDeployer:
                 logger.error("npm install timed out after 10 minutes")
                 raise Exception("npm install timed out. This could be due to slow network or large dependencies.")
             
-            # Check if CDK is available (don't install globally to avoid permission issues)
-            logger.info("Installing AWS CDK globally...")
-            try:
-                npm_install_result2 = subprocess.run(
-                    ["npm", "install", "-g", "aws-cdk"],
-                    capture_output=True,
-                    text=True,
-                    timeout=300  # 5 minute timeout for global CDK install
-                )
-
-                if npm_install_result2.returncode != 0:
-                    logger.error(f"Global CDK install failed: {npm_install_result2.stderr}")
-                    logger.warning("Global CDK install failed, but proceeding as CDK might already be available")
-                else:
-                    logger.info("Global CDK install completed successfully")
+            # Check if CDK is available and handle global installation more gracefully
+            logger.info("Checking if AWS CDK is already available...")
+            
+            # First check if CDK is already available
+            cdk_check_result = subprocess.run(
+                ["cdk", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if cdk_check_result.returncode == 0:
+                cdk_version = cdk_check_result.stdout.strip()
+                logger.info(f"✅ AWS CDK is already available: {cdk_version}")
+            else:
+                logger.info("AWS CDK not found, attempting global installation...")
+                
+                # Provide helpful information about common installation issues
+                logger.info("💡 Note: If installation fails, you can manually install CDK with:")
+                logger.info("   npm install -g aws-cdk")
+                
+                try:
+                    # Try to clean up any existing CDK installation first
+                    logger.info("Cleaning up any existing CDK installation...")
+                    cleanup_result = subprocess.run(
+                        ["npm", "uninstall", "-g", "aws-cdk"],
+                        capture_output=True,
+                        text=True,
+                        timeout=60
+                    )
+                    if cleanup_result.returncode == 0:
+                        logger.info("✅ Cleaned up existing CDK installation")
+                    else:
+                        logger.info("No existing CDK installation found or cleanup failed")
                     
-            except subprocess.TimeoutExpired:
-                logger.warning("Global CDK install timed out, but proceeding as CDK might already be available")
+                    # Wait a moment for cleanup to complete
+                    import time
+                    time.sleep(2)
+                    
+                    # Try alternative installation methods if the first fails
+                    installation_success = False
+                    
+                    # Method 1: Standard npm install
+                    logger.info("Attempting standard npm install...")
+                    npm_install_result2 = subprocess.run(
+                        ["npm", "install", "-g", "aws-cdk"],
+                        capture_output=True,
+                        text=True,
+                        timeout=300
+                    )
+
+                    if npm_install_result2.returncode == 0:
+                        logger.info("✅ Standard npm install completed successfully")
+                        installation_success = True
+                    else:
+                        logger.warning(f"Standard npm install failed: {npm_install_result2.stderr}")
+                        
+                        # Method 2: Try with --force flag
+                        logger.info("Attempting npm install with --force flag...")
+                        npm_force_result = subprocess.run(
+                            ["npm", "install", "-g", "aws-cdk", "--force"],
+                            capture_output=True,
+                            text=True,
+                            timeout=300
+                        )
+                        
+                        if npm_force_result.returncode == 0:
+                            logger.info("✅ npm install with --force completed successfully")
+                            installation_success = True
+                        else:
+                            logger.warning(f"npm install with --force failed: {npm_force_result.stderr}")
+                    
+                    if not installation_success:
+                        logger.error("❌ All CDK installation methods failed")
+                        logger.warning("⚠️ You may need to manually install CDK or check npm permissions")
+                        logger.warning("⚠️ Common solutions:")
+                        logger.warning("   - Run: npm cache clean --force")
+                        logger.warning("   - Check npm permissions: npm config get prefix")
+                        logger.warning("   - For ENOTEMPTY errors, try: npm cache clean --force && npm install -g aws-cdk")
+                        logger.warning("   - Or manually remove: rm -rf ~/.local/share/mise/installs/node/*/lib/node_modules/aws-cdk")
+                    else:
+                        logger.info("✅ CDK installation completed successfully")
+                        
+                except subprocess.TimeoutExpired:
+                    logger.warning("Global CDK install timed out, but proceeding as CDK might already be available")
+                except Exception as e:
+                    logger.warning(f"Global CDK install failed with exception: {e}, but proceeding as CDK might already be available")
             return True
     
         finally:
@@ -244,20 +313,45 @@ class OpenSearchDeployer:
                 # Check if the parameter is already in the command
                 if not any(param_value in arg for arg in cmd):
                     # Add the parameter to the command
-                    if not param_value.startswith("-c"):
-                        cmd.extend(["-c", param_value])
-                        logger.info(f"📝 Added parameter: {param_value}")
-                    else:
-                        cmd.append(param_value)
-                        logger.info(f"📝 Added parameter: {param_value}")
+                    cmd.append(param_value)
+                    logger.info(f"📝 Added parameter: {param_value}")
                 else:
                     logger.info(f"📝 Parameter already in command: {param_value}")
         
         return cmd
 
+    def check_cdk_available(self) -> bool:
+        """Check if AWS CDK is available in the system PATH."""
+        try:
+            result = subprocess.run(
+                ["cdk", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            if result.returncode == 0:
+                cdk_version = result.stdout.strip()
+                logger.info(f"✅ AWS CDK is available: {cdk_version}")
+                return True
+            else:
+                logger.error(f"❌ AWS CDK is not available: {result.stderr}")
+                return False
+        except FileNotFoundError:
+            logger.error("❌ AWS CDK command not found in PATH")
+            return False
+        except Exception as e:
+            logger.error(f"❌ Error checking CDK availability: {e}")
+            return False
+    
     # run the CDK bootstrap
     def run_cdk_bootstrap(self, context_file: str) -> bool:
         """Run CDK bootstrap to prepare AWS environment."""
+
+        # Check if CDK is available before proceeding
+        if not self.check_cdk_available():
+            logger.error("❌ Cannot proceed with CDK bootstrap - CDK is not available")
+            logger.error("❌ Please install CDK manually or ensure it's available in your PATH")
+            return False
 
         original_cwd = os.getcwd()
             
@@ -325,6 +419,18 @@ class OpenSearchDeployer:
     # run the CDK deploy
     def run_cdk_deploy(self, context_file: str, config: Dict[str, Any]) -> Dict[str, Any]:
         """Run CDK deploy to create the OpenSearch cluster."""
+        # Check if CDK is available before proceeding
+        if not self.check_cdk_available():
+            logger.error("❌ Cannot proceed with CDK deploy - CDK is not available")
+            logger.error("❌ Please install CDK manually or ensure it's available in your PATH")
+            return {
+                ResultFields.STATUS: Status.ERROR,
+                ResultFields.MESSAGE: "AWS CDK is not available in the system PATH",
+                ResultFields.OUTPUT: "",
+                ResultFields.ERROR_OUTPUT: "CDK command not found",
+                ResultFields.FULL_OUTPUT: "AWS CDK is not available in the system PATH. Please install CDK manually or ensure it's available in your PATH."
+            }
+
         original_cwd = os.getcwd()
             
         try:
@@ -358,10 +464,10 @@ class OpenSearchDeployer:
             logger.info("🚀 Running CDK deploy...")
             
             deploy_cmd = [
-                "cdk", "deploy", "*",
-                "--require-approval", "never",
-                "--verbose",
-                "--rollback", "false"
+                "cdk", "deploy", "'*'",
+                # "--require-approval", "never",
+                # "--verbose",
+                # "--rollback", "false"
             ] + context_args
 
             # Add custom deploy parameters if provided
@@ -387,8 +493,8 @@ class OpenSearchDeployer:
                     ResultFields.STATUS: Status.ERROR,
                     ResultFields.MESSAGE: f"CDK deploy failed with return code: {result.returncode}",
                     ResultFields.OUTPUT: result.stdout,
-                    "error_output": result.stderr,
-                    "full_output": f"STDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}"
+                    ResultFields.ERROR_OUTPUT: result.stderr,
+                    ResultFields.FULL_OUTPUT: f"STDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}"
                 }
             
             logger.info("✅ CDK deploy completed successfully")
@@ -422,8 +528,8 @@ class OpenSearchDeployer:
                 ResultFields.MESSAGE: "OpenSearch cluster deployed successfully",
                 ResultFields.CLUSTER_INFO: cluster_info,
                 ResultFields.OUTPUT: result.stdout,
-                "full_output": combined_output,
-                "command": deploy_command
+                ResultFields.FULL_OUTPUT: combined_output,
+                ResultFields.COMMAND: deploy_command
             }
             
             # Add output to S3 info to deploy result
@@ -545,9 +651,9 @@ class OpenSearchDeployer:
             
             # Create deploy results metadata
             deploy_metadata = {
-                "deploy_status": deploy_result.get(ResultFields.STATUS),
-                "deploy_message": deploy_result.get(ResultFields.MESSAGE),
-                "config": config,
+                ResultFields.DEPLOY_STATUS: deploy_result.get(ResultFields.STATUS),
+                ResultFields.DEPLOY_MESSAGE: deploy_result.get(ResultFields.MESSAGE),
+                ResultFields.CONFIG: config,
                 ResultFields.CLUSTER_INFO: deploy_result.get(ResultFields.CLUSTER_INFO, {})
             }
             

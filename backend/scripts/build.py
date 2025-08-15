@@ -72,7 +72,7 @@ class OpenSearchBuilder:
                 "-v", f"{os.path.abspath('opensearch-build')}:/opensearch-build",
                 "-v", f"{os.path.abspath(self.manifest_path)}:/opensearch-build/manifest.yml",
                 "-w", "/opensearch-build",
-                "-e", "JAVA_HOME=/opt/java/openjdk-21",
+                "-e", "JAVA_HOME=/opt/java/openjdk-24",
                 docker_image,
                 "./build.sh", "/opensearch-build/manifest.yml",
                 "-p", "linux",
@@ -126,7 +126,7 @@ class OpenSearchBuilder:
                 "docker", "run", "--name", container_name,
                 "-v", f"{os.path.abspath('opensearch-build')}:/opensearch-build",
                 "-w", "/opensearch-build",
-                "-e", "JAVA_HOME=/opt/java/openjdk-21",
+                "-e", "JAVA_HOME=/opt/java/openjdk-24",
                 docker_image,
                 "./assemble.sh", build_manifest_path
             ]
@@ -236,9 +236,9 @@ class OpenSearchBuilder:
             build_result = {
                 ResultFields.STATUS: Status.SUCCESS,
                 ResultFields.MESSAGE: "Build completed successfully with S3 upload",
-                "tarball_path": tarball_path,
-                "command": combined_command,
-                "s3_info": s3_info,
+                ResultFields.TARBALL_PATH: tarball_path,
+                ResultFields.COMMAND: combined_command,
+                ResultFields.S3_INFO: s3_info,
                 ResultFields.OUTPUT: combined_output
             }
             # Upload build results metadata to S3
@@ -313,12 +313,12 @@ class OpenSearchBuilder:
             
             # Create build results metadata
             build_metadata = {
-                "build_status": build_result.get(ResultFields.STATUS),
-                "build_message": build_result.get(ResultFields.MESSAGE),
-                "build_manifest_path": build_result.get("build_manifest_path"),
-                "tarball_path": build_result.get("tarball_path"),
-                "s3_info": build_result.get("s3_info", {}),
-                "config": self.config
+                ResultFields.BUILD_STATUS: build_result.get(ResultFields.STATUS),
+                ResultFields.BUILD_MESSAGE: build_result.get(ResultFields.MESSAGE),
+                ResultFields.BUILD_MANIFEST_PATH: build_result.get(ResultFields.BUILD_MANIFEST_PATH),
+                ResultFields.TARBALL_PATH: build_result.get(ResultFields.TARBALL_PATH),
+                ResultFields.S3_INFO: build_result.get(ResultFields.S3_INFO, {}),
+                ResultFields.CONFIG: self.config
             }
             
             # Use the new upload method with timing data

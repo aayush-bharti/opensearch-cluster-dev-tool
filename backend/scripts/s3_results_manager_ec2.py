@@ -82,17 +82,17 @@ class S3ResultsManager:
                 ResultFields.BENCHMARK_ID: results_metadata.get(ResultFields.BENCHMARK_ID, "ec2_benchmark"),
                 ResultFields.RESULTS_LOCATION: f"s3://{bucket_name}/{results_s3_key}",
                 ResultFields.OUTPUT: benchmark_output,
-                "stdout": stdout,
-                "stderr": stderr,
-                "command": command,
-                "task_started_at": results_metadata.get("task_started_at", ""),
-                "task_completed_at": results_metadata.get("task_completed_at", ""),
+                ResultFields.STDOUT: stdout,
+                ResultFields.STDERR: stderr,
+                ResultFields.COMMAND: command,
+                ResultFields.TASK_STARTED_AT: results_metadata.get("task_started_at", ""),
+                ResultFields.TASK_COMPLETED_AT: results_metadata.get("task_completed_at", ""),
                 ResultFields.RESULTS_FILE_CONTENT: results_file_content,
-                "results_s3_uri": f"s3://{bucket_name}/{results_s3_key}",
-                "results_https_url": f"https://{bucket_name}.s3.{self.region}.amazonaws.com/{results_s3_key}",
-                "results_s3_key": results_s3_key,
+                ResultFields.RESULTS_S3_URI: f"s3://{bucket_name}/{results_s3_key}",
+                ResultFields.RESULTS_HTTPS_URL: f"https://{bucket_name}.s3.{self.region}.amazonaws.com/{results_s3_key}",
+                ResultFields.RESULTS_S3_KEY: results_s3_key,
                 ResultFields.MESSAGE: "EC2 benchmark completed successfully with S3 upload",
-                "output_s3_info": {
+                ResultFields.OUTPUT_S3_INFO: {
                     ResultFields.S3_URI: f"s3://{bucket_name}/{output_s3_key}",
                     ResultFields.HTTPS_URL: f"https://{bucket_name}.s3.{self.region}.amazonaws.com/{output_s3_key}",
                     ResultFields.BUCKET_NAME: bucket_name,
@@ -132,29 +132,29 @@ class S3ResultsManager:
             
             # Get metadata for both files
             summary = {
-                "workflow_timestamp": workflow_timestamp,
-                "bucket_name": bucket_name,
-                "results_key": results_s3_key,
-                "output_key": output_s3_key,
-                "results_exist": False,
-                "output_exist": False
+                ResultFields.WORKFLOW_TIMESTAMP: workflow_timestamp,
+                ResultFields.BUCKET_NAME: bucket_name,
+                ResultFields.RESULTS_KEY: results_s3_key,
+                ResultFields.OUTPUT_KEY: output_s3_key,
+                ResultFields.RESULTS_EXIST: False,
+                ResultFields.OUTPUT_EXIST: False
             }
             
             # Check if results file exists
             try:
                 response = self.s3_client.head_object(Bucket=bucket_name, Key=results_s3_key)
-                summary["results_exist"] = True
-                summary["results_size"] = response.get('ContentLength', 0)
-                summary["results_last_modified"] = response.get('LastModified', '').isoformat()
+                summary[ResultFields.RESULTS_EXIST] = True
+                summary[ResultFields.RESULTS_SIZE] = response.get('ContentLength', 0)
+                summary[ResultFields.RESULTS_LAST_MODIFIED] = response.get('LastModified', '').isoformat()
             except Exception:
                 pass
             
             # Check if output file exists
             try:
                 response = self.s3_client.head_object(Bucket=bucket_name, Key=output_s3_key)
-                summary["output_exist"] = True
-                summary["output_size"] = response.get('ContentLength', 0)
-                summary["output_last_modified"] = response.get('LastModified', '').isoformat()
+                summary[ResultFields.OUTPUT_EXIST] = True
+                summary[ResultFields.OUTPUT_SIZE] = response.get('ContentLength', 0)
+                summary[ResultFields.OUTPUT_LAST_MODIFIED] = response.get('LastModified', '').isoformat()
             except Exception:
                 pass
             

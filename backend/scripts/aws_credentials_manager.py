@@ -5,6 +5,7 @@ import boto3
 import logging
 import subprocess
 import time
+import os
 from typing import Dict
 from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
 from constants import AWSConfig
@@ -55,9 +56,6 @@ class AWSCredentialsManager:
     def get_local_timezone(self) -> str:
         """Get the local machine's timezone."""
         try:
-            import time
-            import os
-            
             # Try to read from /etc/timezone (Linux)
             if os.path.exists('/etc/timezone'):
                 with open('/etc/timezone', 'r') as f:

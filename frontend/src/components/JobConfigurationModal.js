@@ -186,6 +186,7 @@ const JobConfigurationModal = ({ isVisible, onClose, job }) => {
   const ec2BenchmarkFields = [
     "instance_type",
     "key_name",
+    "security_group_id",
     "timeout_minutes",
   ];
 

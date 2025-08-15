@@ -39,6 +39,52 @@ class ResultFields:
     RESULTS_LOCATION = "results_location"
     OUTPUT = "output"
     RESULTS_FILE_CONTENT = "results_file_content"
+    ERROR_OUTPUT = "error_output"
+    FULL_OUTPUT = "full_output"
+    COMMAND = "command"
+    CONFIG = "config"
+
+    BUILD_STATUS = "build_status"
+    BUILD_MESSAGE = "build_message"
+    BUILD_MANIFEST_PATH = "build_manifest_path"
+    TARBALL_PATH = "tarball_path"
+
+    DEPLOY_STATUS = "deploy_status"
+    DEPLOY_MESSAGE = "deploy_message"
+
+    TASK_STARTED_AT = "task_started_at"
+    TASK_COMPLETED_AT = "task_completed_at"
+    STDOUT = "stdout"
+    STDERR = "stderr"
+    BENCHMARK_STATUS = "benchmark_status"
+    BENCHMARK_MESSAGE = "benchmark_message"
+    EXECUTION_INFO = "execution_info"
+    CONTENT_LENGTH = "content_length"
+    BENCHMARK_SUCCESS = "benchmark_success"
+    INSTANCE_ID = "instance_id"
+    INSTANCE_INFO = "instance_info"
+    
+    CLUSTER_SECURITY_GROUP = "cluster_security_group"
+    PUBLIC_IP = "public_ip"
+    PRIVATE_IP = "private_ip"
+    SECURITY_GROUP_ID = "security_group_id"
+    VPC_ID = "vpc_id"
+    SUBNET_ID = "subnet_id"
+
+    OUTPUT_S3_INFO = "output_s3_info"
+    RESULTS_S3_URI = "results_s3_uri"
+    RESULTS_HTTPS_URL = "results_https_url"
+    RESULTS_S3_KEY = "results_s3_key"
+
+    RESULTS_EXIST = "results_exist"
+    OUTPUT_EXIST = "output_exist"
+    WORKFLOW_TIMESTAMP = "workflow_timestamp"
+    RESULTS_KEY = "results_key"
+    OUTPUT_KEY = "output_key"
+    RESULTS_SIZE = "results_size"
+    OUTPUT_SIZE = "output_size"
+    RESULTS_LAST_MODIFIED = "results_last_modified"
+    OUTPUT_LAST_MODIFIED = "output_last_modified"
 
 # Configuration field constants
 class ConfigFields:
@@ -71,6 +117,7 @@ class ConfigFields:
     SUBNET_ID = "subnet_id"
     MY_IP = "my_ip"
     TIMEOUT_MINUTES = "timeout_minutes"
+    SECURITY_GROUP_ID = "security_group_id"
     
     # S3 Configuration
     S3_BUCKET = "s3_bucket"    

@@ -53,11 +53,19 @@ class EC2WorkflowOrchestrator:
             logger.info(f"📅 Task started at: {task_started_at}")
             
             # Extract cluster security group
-            cluster_sg = self.security_group_manager.extract_cluster_security_group(
-                self.config["cluster_endpoint"], deploy_result
-            )
-            if not cluster_sg:
-                logger.warning("⚠️ Could not extract cluster security group - EC2 may not be able to access cluster")
+            if self.config.get("security_group_id"):
+                # Use manually provided cluster security group ID
+                cluster_sg = self.config["security_group_id"]
+                logger.info(f"🔒 Using manually specified cluster security group: {cluster_sg}")
+            else:
+                # Try to extract cluster security group automatically
+                cluster_sg = self.security_group_manager.extract_cluster_security_group(
+                    self.config["cluster_endpoint"], deploy_result
+                )
+                if cluster_sg:
+                    logger.info(f"🔒 Automatically extracted cluster security group: {cluster_sg}")
+                else:
+                    logger.warning("⚠️ Could not extract cluster security group - EC2 may not be able to access cluster")
             
             # Get AWS credentials for user data script
             aws_creds = self.aws_credentials_manager.get_current_aws_credentials()
@@ -96,6 +104,8 @@ class EC2WorkflowOrchestrator:
             
             # Add EC2 instance to cluster security group
             if cluster_sg:
+                # Set the cluster security group ID in the security group manager
+                self.security_group_manager.cluster_security_group_id = cluster_sg
                 self.security_group_manager.add_ec2_to_cluster_security_group(
                     self.instance_manager.get_instance_id()
                 )
@@ -133,14 +143,14 @@ class EC2WorkflowOrchestrator:
             # Create result
             result = {
                 ResultFields.STATUS: Status.SUCCESS if benchmark_success else Status.FAILED,
-                "benchmark_id": self.benchmark_id,
-                "instance_id": self.instance_manager.get_instance_id(),
-                "instance_info": instance_info,
-                "cluster_security_group": cluster_sg,
-                "benchmark_success": benchmark_success,
-                "task_started_at": task_started_at,
-                "task_completed_at": task_completed_at,
-                "message": "EC2 benchmark workflow completed successfully" if benchmark_success else "EC2 benchmark workflow failed"
+                ResultFields.BENCHMARK_ID: self.benchmark_id,
+                ResultFields.INSTANCE_ID: self.instance_manager.get_instance_id(),
+                ResultFields.INSTANCE_INFO: instance_info,
+                ResultFields.CLUSTER_SECURITY_GROUP: cluster_sg,
+                ResultFields.BENCHMARK_SUCCESS: benchmark_success,
+                ResultFields.TASK_STARTED_AT: task_started_at,
+                ResultFields.TASK_COMPLETED_AT: task_completed_at,
+                ResultFields.MESSAGE: "EC2 benchmark workflow completed successfully" if benchmark_success else "EC2 benchmark workflow failed"
             }
             
             # If benchmark was successful and we have S3 results, merge them into the main result
