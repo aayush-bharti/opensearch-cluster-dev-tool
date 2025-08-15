@@ -106,13 +106,17 @@ This project provides a full-stack application for automating OpenSearch build, 
 
 ## Running the Application
 
-1. Start the backend server:
+1. Run `aws configure` to set up the aws credentials file
+
+2. Start Docker
+
+3. Start the backend server:
    ```bash
    cd backend
    python main.py
    ```
 
-2. Start the frontend development server:
+4. Start the frontend development server:
    ```bash
    cd frontend
    yarn start
